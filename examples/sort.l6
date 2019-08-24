@@ -1,0 +1,34 @@
+; Example from:
+;
+;   The definition and implementation of Lsix in BCL
+;        By R. J. W. Housden
+;
+; A complete list of tests and operations is given in Tables 1 and 2. Some of
+; these are illustrated by the following complete program which reads,  sorts into
+; ascending sequence and outputs numbers each terminated by a single space. The
+; sequence of numbers is terminated by a double space. For simplicity the numbers
+; are restricted to the range 0-9999.
+
+                (*20000000, ss, 4, *20000400)
+                (1, DD, 0, 23) (2, DA, 0, 23) (3, DB, 0, 23)
+                (0, DZ, 0, 23)
+                (DO, INPUT) (DO, ORDER) (DO, OUTPUT) END
+INPUT           (W, GT, 4) (WB, E, 1OOOO) (S, FC, X) (S, FD, 1)
+                (X, GT, 1) (O, D1, 0, 5)
+NEXT            (W, GT, 4, WA) (WAD, P, W) (WB, E, 0)
+RD              (X1, IN, 1)
+        NOT     (X1, EH,  ) THEN (WB, L, 6, X1) RD
+        NOT     (WB, E, 0) THEN (WB, DB, WB) NEXT
+                (R, FD, 1) (X, FR, 0) (R, FC, X) DONE
+ORDER           (S, FC, X) (X, P, XA)
+ND      IF      (XA, E, 0) THEN (R, FC, X) DONE
+BACK    IF      (XB, L, XDB) THEN (XB, IC, XDB) (X, D) BACK
+                (X, A) ND
+OUTPUT          (W, FR, WA) (S, FC, X)
+ANYMORE IF      (WA, E, 0) THEN (W, FR, 0) (R, FC, X) DONE
+                (X, BD, WB) (X, ZB, X) (6, PR, X) (W, FR, WA) ANYMORE
+
+
+
+
+

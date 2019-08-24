@@ -1,0 +1,41 @@
+
+; 6.1 INPUTTING A LIST OF NUMBERS. Let us assume that a series of numbers are to
+; be read from successive 6-column fields of a single card, where the list is
+; terminated by the first field containing only blanks. All numbers are assumed to
+; be larger than 0 and smaller than 32767. The job of the subroutine is to compose
+; a doubly-linked list of 2-blocks with these numbers in binary form in field B,
+; and with the list beginning with dummy entry 0 and ending with dummy entry
+; 32767:
+
+INP     THEN    (W, GT, 2) (WB, E, 32767) (S, FC, X)
+RD      THEN    (X, IN, 6) (X, BZ, X)
+        THEN    (W, GT, 2, WA) (WAD, P, W) (WB, DB, X)
+        NOT     (X, E, 0) RD
+        THEN    (X, IN, 73) (R, FC, X) DONE
+
+; 6.2 ORDERING AND REMOVING DUPLICATES. A subroutine for ordering the numbers and
+; removing duplicates from the list produced in 6.1 can be devised by temporarily
+; using a bug, say bug X, to scan the list,con]paring numbers in adjacent blocks:
+
+ORDER   THEN    (S, FC, X) (X, P, WA)
+ND      IF      (X_A, E, 0) THEN (R, FC, X) DONE
+BACK    IF      (XB, E, XDB) THEN (XDA, P, XA) (XAD, P, XD) (X, FR, XA) ND
+        IF      (XB, L, XDB) THEN (XB, IC, XDB) (X, D) BACK
+        THEN    (X, A) ND
+
+; 6.3 OUTPUTTING OFF RESULTS OF 6.2. The ordered list of numbers which results
+; from 6.2 can be output, and the list returned to free storage, by the
+; subroutine:
+
+OUTPUT  THEN    (W, FR, WA) (S, FC, X)
+ANYMOR  IF      (WA, E, 0) THEN (W, FR, 0) (1, PR, 77) (R, FC, X) DONE
+        THEN    (X, BD, WB) (X, ZB, X) (6, PR, X) (W, FR, WA) ANYMOR
+
+; 6.4 RETURNING A TREE TO FREE STORAGE. As an example of a subroutine which uses
+; itself recursively, consider one which returns to free storage the entire
+; binary tree pointed to by bug W and connected as indicated.  where a zero
+; "pointer" at any level means no subtree below this point on this side. The
+; entire subroutine is the following:
+
+RTRE    IF      (W, E, 0) DONE
+        THEN    (S, FC, WA) (W, FR, WD) (DO, RTRE) (R, FC, W) RTRE
