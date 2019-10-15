@@ -32,44 +32,47 @@
 
 #include <iosfwd>
 #include <vector>
-#include "ast.hpp"
+#include <unordered_map>
+#include "astnode.hpp"
+#include "nodetypes.hpp"
+#include "tokenstream.hpp"
 
 namespace elsix{
 
 // Forward declarations.
-class Tokenizer;
+class TokenStream;
 class ErrorHandler;
 
 class parser{
 public:
-    explicit parser(Tokenizer &&token_stream);
-    explicit parser(Tokenizer &&token_stream, ErrorHandler &&error_handler);
+    explicit parser(TokenStream &&token_stream);
+    explicit parser(TokenStream &&token_stream, ErrorHandler &&error_handler);
     ~parser() = default;
 
-    shared_ASTNode parse();
+    ASTNode_sp parse();
 
 private:
-    Tokenizer &tokenstream_;
+    TokenStream &token_stream_;
     std::unique_ptr<ErrorHandler> error_handler_;
     // A map between labels and their lines.
-    std::unordered_map<const std::string *, shared_ASTNode> labels;
+    std::unordered_map<const std::string *, ASTNode_sp> labels_;
     // GoTo statements that need to be back-patched.
-    std::vector<shared_ASTNode> label_gotos;
+    std::vector<ASTNode_sp> label_gotos_;
 
     // Parse functions.
-    [[nodiscard]] shared_ASTNode parseLine();
-    [[nodiscard]] shared_ASTNode parseLabelOrKeyword();
-    [[nodiscard]] shared_ASTNode parseIf();
-    [[nodiscard]] shared_ASTNode parseTest();
-    [[nodiscard]] shared_ASTNode parseThen();
-    [[nodiscard]] shared_ASTNode parseGoTo(shared_ASTNode label);
-    [[nodiscard]] shared_ASTNode parseOperation();
+    [[nodiscard]] ASTNode_sp parse_line();
+    [[nodiscard]] ASTNode_sp parse_label_or_keyword();
+    [[nodiscard]] ASTNode_sp parse_if();
+    [[nodiscard]] ASTNode_sp parse_test();
+    [[nodiscard]] ASTNode_sp parse_then();
+    [[nodiscard]] ASTNode_sp parse_goto(ASTNode_sp label);
+    [[nodiscard]] ASTNode_sp parse_operation();
 
     // Utility functions.
-    void checkNodeType(const ASTNode &node, NodeType expected);
+    void check_node_type(const ASTNode &node, NodeType expected);
     void expect(NodeType expected);
-    void interpretAsType(shared_ASTNode &node, ArgType type);
-    void interpretAsNumber(shared_ASTNode &node, int base = 10);
+    void interpret_as_type(ASTNode_sp &node, ArgType type);
+    void interpret_as_number(ASTNode_sp &node, int base = 10);
 
 };
 

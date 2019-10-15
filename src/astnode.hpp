@@ -34,53 +34,47 @@
 #include <variant>
 #include <string>
 
-#include "visitor.hpp"
-#include "tokens.hpp"
+#include "visitor.hpp"      // Visitor
+#include "nodetypes.hpp"    // NodeType
+#include "location.hpp"     // Span
 
 namespace elsix{
 
-
-struct Location{
-    Location() = default;
-    explicit Location(int row, int column): row(row), column(column){}
-    Location( const Location& other ) = default;
-
-    Location& operator=( const Location& rhs ) = default;
-    int row = -1;
-    int column = -1;
-};
-
-
-struct LocationRangeImpl{
-    LocationRangeImpl() = default;
-    explicit LocationRangeImpl(const Location &start, const Location &end, int file_id)
-        : start(start), end(end), file_id(file_id){}
-    explicit LocationRangeImpl(const Location &start, int file_id)
-        : start(start), end(Location()), file_id(file_id){}
-
-    Location start;
-    Location end;
-    int file_id = -1;
-};
-
-// Convenience typedefs
-using LocationRange = std::shared_ptr<LocationRangeImpl>;
 class ASTNode;
 // A parent owns its children.
-using shared_ASTNode = std::shared_ptr<ASTNode>;
+using ASTNode_sp = std::shared_ptr<ASTNode>;
 // A child does not own its parent.
-using weak_ASTNode = std::weak_ptr<ASTNode>;
+using ASTNode_wp = std::weak_ptr<ASTNode>;
 
+/**
+ * @brief The node class of the abstract syntax tree. Tokens are leaf nodes and do not have their
+ * own dedicated class.
+ */
 class ASTNode{
 public:
-    // Nodes must at least have a type (possibly undefined) and `LocationRange`.
-    explicit ASTNode(NodeType t, const shared_ASTNode &parent, LocationRange location_range);
-    explicit ASTNode(NodeType t, LocationRange location_range);
+    /**
+     * @brief Creates a node of type `NodeType::UNDEFINED` with zeroed span.
+     * @param t: The type of the node.
+     */
+    explicit ASTNode();
+    /**
+     * @brief Creates a node of type `t` with zeroed span.
+     * @param t: The type of the node.
+     */
+    explicit ASTNode(NodeType t);
+    /**
+     * @brief Creates a zero-length node of type `t`.
+     * @param t: The type of the node.
+     * @param loc: The start and end of the node.
+     */
+    explicit ASTNode(NodeType t, Location loc);
+    explicit ASTNode(NodeType t, Span spn);
     ~ASTNode();
 
-    int length();
-
-    LocationRange location_range;
+    /**
+     * @brief The location in the source file.
+     */
+    Span span;
 
     /**
      * @brief What the node represents.
@@ -90,32 +84,31 @@ public:
     /**
      * @brief A parent owns its children.
      */
-    std::vector<shared_ASTNode> children;
+    std::vector<ASTNode_sp> children;
 
     /**
      * @brief A child does not own its parent.
      */
-    weak_ASTNode parent;
+    ASTNode_wp parent;
+
     /**
      * @brief Holds a numeric value, a (pointer to) a string, or a pointer to a block.
      *
-     * If the value is a string, we own the string and need to free it in dtor.
      */
-    using ValueType = std::variant<unsigned long,
-        const std::string *, weak_ASTNode >;
+    using ValueType = std::variant<unsigned long, ASTNode_wp, const std::string_view>;
     ValueType value;
 
-    const std::string *value_as_string() const;
-    unsigned long value_as_long() const noexcept;
-    weak_ASTNode value_as_node() const;
+    [[nodiscard]] const std::string_view value_as_string();
+    [[nodiscard]] unsigned long value_as_long() const noexcept;
+    [[nodiscard]] ASTNode_wp value_as_node() const;
 
 private:
-    void accept(Visitor v){
-        v.visit(std::shared_ptr<ASTNode>(this));
+    void accept(Visitor &v){
+        v.visit(ASTNode_sp(this));
     }
 }; // end class ASTNode
 
-shared_ASTNode & attachChild(shared_ASTNode &&child, shared_ASTNode &parent);
+ASTNode_sp & attachChild(ASTNode_sp &&child, ASTNode_sp &parent);
 
 } // end namespace elsix
 

@@ -27,48 +27,54 @@
     
     */
 
-#include "ast.hpp"
+#include "astnode.hpp"
+#include "nodetypes.hpp"
 
 namespace elsix{
 
-ASTNode::ASTNode(NodeType t, const shared_ASTNode &parent, LocationRange location_range):
-    location_range(std::move(location_range)),
+ASTNode::ASTNode():
+    span(Span()),
+    type(NodeType::UNDEFINED),
+    value(0UL){
+}
+
+ASTNode::ASTNode(NodeType t):
+    span(Span()),
     type(t),
-    parent(parent),
-    value{0ul}{
+    value(0UL){
 }
 
-int ASTNode::length(){
-    int pos = location_range->start.column - 1;
-    return location_range->end.column - pos;
+ASTNode::ASTNode(NodeType t, Location loc):
+    span(Span(loc, loc)),
+    type(t),
+    value(0UL){
 }
 
-
-ASTNode::ASTNode(NodeType node_type, LocationRange location_range):
-    location_range(std::move(location_range)),
-    type(node_type),
-    value{0ul}{
+ASTNode::ASTNode(NodeType t, Span s):
+    span(s),
+    type(t),
+    value(0UL){
 }
 
 ASTNode::~ASTNode(){
     // If we own a string on the heap, we need to delete it.
     if(NodeType::HOLLERITH_LITERAL == type
-        && nullptr != std::get<const std::string *>(value)){
-        delete std::get<const std::string *>(value);
+        && nullptr != std::get<const std::string_view>(value)){
+        delete std::get<const std::string_view>(value);
     }
 }
 
-inline const std::string *ASTNode::value_as_string() const{
-    return std::get<const std::string *>(value);
+inline const std::string_view ASTNode::value_as_string(){
+    return std::get<const std::string_view>(value);
 }
 inline unsigned long ASTNode::value_as_long() const noexcept{
     return std::get<unsigned long>(value);
 }
-weak_ASTNode ASTNode::value_as_node() const{
-    return std::get<weak_ASTNode>(value);
+ASTNode_wp ASTNode::value_as_node() const{
+    return std::get<ASTNode_wp>(value);
 }
 
-shared_ASTNode & attachChild(shared_ASTNode &&child, shared_ASTNode &parent){
+ASTNode_sp & attachChild(ASTNode_sp &&child, ASTNode_sp &parent){
     child->parent = std::weak_ptr<ASTNode>{parent};
     parent->children.push_back(std::move(child));
     return parent->children.back();

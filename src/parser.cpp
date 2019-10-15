@@ -30,23 +30,26 @@
 
 #include <iostream>
 #include <string>
-#include <cstring>
+// #include <cstring>
+#include <charconv>  // std::from_chars()
+
 #include "fmt/format.h"
 
 #include "parser.hpp"
 #include "error.hpp"
-#include "tokenizer.hpp"
-#include "ast.hpp"
+#include "tokenstream.hpp"
+#include "astnode.hpp"
+#include "nodetypes.hpp"
 
 namespace elsix{
 
 // region: Parser constructors.
 
-parser::parser(Tokenizer &&token_stream):
-    tokenstream_(token_stream), error_handler_(std::make_unique<ErrorHandler>()){
+parser::parser(TokenStream &&token_stream):
+    token_stream_(token_stream), error_handler_(std::make_unique<ErrorHandler>()){
 }
 
-parser::parser(Tokenizer &&token_stream, ErrorHandler &&error_handler): tokenstream_(token_stream){
+parser::parser(TokenStream &&token_stream, ErrorHandler &&error_handler): token_stream_(token_stream){
     error_handler_ = std::make_unique<ErrorHandler>(error_handler);
 }
 // endregion: Parser constructors.
@@ -55,23 +58,22 @@ parser::parser(Tokenizer &&token_stream, ErrorHandler &&error_handler): tokenstr
  * @brief PROGRAM = LINE ('\n' LINE)*
  * @return The root node of the program.
  */
-shared_ASTNode parser::parse(){
-    shared_ASTNode root_node {
-        std::make_shared<ASTNode>(NodeType::PROGRAM, tokenstream_.startRange())
+ASTNode_sp parser::parse(){
+    ASTNode_sp root_node {
+        std::make_shared<ASTNode>(NodeType::PROGRAM)
     };
-    shared_ASTNode next_node{parseLine()};
+    ASTNode_sp next_node{parse_line()};
+    root_node->span.start = root_node->children.back()->span.end;
 
-    while(next_node->type != NodeType::DONE
-            && next_node->type != NodeType::EMPTY
+    while(next_node->type != NodeType::EOF_
+            // ToDo: Should we stop on `NoteType::ERROR`? Perhaps distinguish error categories.
             && next_node->type != NodeType::ERROR){
         // Parse the line.
         attachChild(std::move(next_node), root_node);
-        next_node = parseLine();
+        next_node = parse_line();
     }
 
-    // ToDo(Robert): Handle error cases.
-
-    root_node->location_range->end = tokenstream_.here();
+    root_node->span.end = root_node->children.back()->span.end;
     return root_node;
 }
 
@@ -79,30 +81,31 @@ shared_ASTNode parser::parse(){
  * @brief line : LABEL? (ifexpr | thenexpr);
  * @return line node.
  */
-shared_ASTNode parser::parseLine(){
-    shared_ASTNode line_node{
-        std::make_shared<ASTNode>(NodeType::LINE, tokenstream_.startRange())
+ASTNode_sp parser::parse_line(){
+    ASTNode *token{token_stream_.peek()};
+    NodeType next_token_type = token->type;
+    ASTNode_sp line_node{
+        // All non leaf nodes initially have a zero length span, as they may not have any children.
+        std::make_shared<ASTNode>(NodeType::LINE, token->span.start)
     };
-    ASTNode &token{tokenstream_.peek()};
-    NodeType next_token_type = tokenstream_.peek().type;
 
-    while(NodeType::EMPTY != next_token_type && NodeType::ERROR != next_token_type){
+    while(NodeType::EOL != next_token_type && NodeType::ERROR != next_token_type){
         // Alphabetic characters signal either a label or a keyword.
         switch(next_token_type){
         case NodeType::HOLLERITH_LITERAL: {
-            shared_ASTNode child = attachChild(parseLabelOrKeyword(), line_node);
+            ASTNode_sp child = attachChild(parse_label_or_keyword(), line_node);
             if(child->type == NodeType::LABEL){
                 if(line_node->children.size() != 1){
                     // Line already has a label. Complain.
                     error_handler_->emitError(
                         fmt::format(
                             "Not a keyword, and a line can only have one label: {}",
-                            *std::get<const std::string *>(child->value)), child->location_range
+                            *std::get<const std::string *>(child->value)), child->span
                     );
                 } else{
                     // Labeled line. Record the label of this line node in the labels table.
-                    labels.insert(
-                        std::pair<const std::string *, shared_ASTNode>(
+                    labels_.insert(
+                        std::pair<const std::string *, ASTNode_sp>(
                             // The label of the line.
                             std::get<const std::string *>(child->value),
                             // The line itself (as a shared_ptr).
@@ -114,39 +117,41 @@ shared_ASTNode parser::parseLine(){
         }
         case NodeType::LPAREN: {
             // Must be operations in a THEN expression.
-            attachChild(parseThen(), line_node);
+            attachChild(parse_then(), line_node);
             break;
         }
         default: {
                 // Unexpected token.
-                const std::string *error_token = tokenstream_.peekText();
                 error_handler_->emitError(
                     fmt::format(
-                        "Unexpected token: {}", std::string {*error_token}
-                    ), line_node->location_range
+                        "Unexpected token: {}", token_stream_.span_to_string(token->span)
+                    ), token->span
                 );
-                delete error_token;
             }
         } // End switch NodeType.
-        token = tokenstream_.peek();
+        token = token_stream_.peek();
     } // End while
+    
+    if(!line_node->children.empty()){
+        line_node->span.end = line_node->children.end()->get()->span.end;
+    }
 
     return line_node;
 }
 
 
-shared_ASTNode parser::parseLabelOrKeyword(){
-    ASTNode &next_token{tokenstream_.peek()};
+ASTNode_sp parser::parse_label_or_keyword(){
+    ASTNode *next_token{token_stream_.peek()};
 
     // Determine if the token is a keyword or label.
-    auto found = lookup_keyword(*next_token.value_as_string());
+    auto found = lookup_keyword(next_token->value_as_string());
     if(found == NodeType::EMPTY){
         // The token is a label.
-        next_token.type = NodeType::LABEL;
+        next_token->type = NodeType::LABEL;
     } else{
         // Keyword.
-        next_token.type = found;
-        switch(next_token.type){
+        next_token->type = found;
+        switch(next_token->type){
             case NodeType::IFANY:
                 [[fallthrough]];
             case NodeType::IFALL:
@@ -154,17 +159,17 @@ shared_ASTNode parser::parseLabelOrKeyword(){
             case NodeType::IFNALL:
                 [[fallthrough]];
             case NodeType::IFNONE:
-                return parseIf();
+                return parse_if();
             case NodeType::THEN:
-                return parseThen();
+                return parse_then();
             case NodeType::DONE:
-                return tokenstream_.next();
+                return token_stream_.next();
             default:
             UNREACHABLE
         } // End switch on token type
     } // End keyword not found.
 
-    return tokenstream_.next();
+    return token_stream_.next();
 }
 
 /**
@@ -179,27 +184,27 @@ shared_ASTNode parser::parseLabelOrKeyword(){
  *
  * @param if_expr
  */
-shared_ASTNode parser::parseIf(){
-    shared_ASTNode if_expr{std::make_shared<ASTNode>(NodeType::IF, tokenstream_.startRange())};
-    ASTNode &next_node = tokenstream_.peek();
+ASTNode_sp parser::parse_if(){
+    ASTNode_sp if_expr{std::make_shared<ASTNode>(NodeType::IF, token_stream_.startRange())};
+    ASTNode *next_node = token_stream_.peek();
 
     // If must be followed by one or more test operations.
-    while(next_node.type == NodeType::LPAREN){
-        attachChild(parseTest(), if_expr);
-        next_node = tokenstream_.peek();
+    while(next_node->type == NodeType::LPAREN){
+        attachChild(parse_test(), if_expr);
+        next_node = token_stream_.peek();
     }
     // Check for an empty compoundcondition, which is an error.
     if(if_expr->children.empty()){
-        error_handler_->emitError("An IF statement cannot be empty.", if_expr->location_range);
+        error_handler_->emitError("An IF statement cannot be empty.", if_expr->span);
     }
 
-    if(next_node.type == NodeType::HOLLERITH_LITERAL){
-        // Either a THEN or a GoTo, both of which are parsed by parseThen
-        attachChild(parseThen(), if_expr);
+    if(next_node->type == NodeType::HOLLERITH_LITERAL){
+        // Either a THEN or a GoTo, both of which are parsed by parse_then
+        attachChild(parse_then(), if_expr);
     }
 
     // Record the end location of the statement.
-    if_expr->location_range->end = tokenstream_.here();
+    if_expr->span.end = token_stream_.here();
 
     return if_expr;
 
@@ -217,35 +222,35 @@ shared_ASTNode parser::parseIf(){
  * @param then_expr: A THEN node or else an empty node.
  * @return
  */
-shared_ASTNode parser::parseThen(){
-    ASTNode &next_token{tokenstream_.peek()};
-    shared_ASTNode then_expr;
+ASTNode_sp parser::parse_then(){
+    ASTNode *next_token{token_stream_.peek()};
+    ASTNode_sp then_expr;
 
-    if(next_token.type != NodeType::THEN){
-        then_expr = std::make_shared<ASTNode>(NodeType::THEN, tokenstream_.startRange());
+    if(next_token->type != NodeType::THEN){
+        then_expr = std::make_shared<ASTNode>(NodeType::THEN, token_stream_.startRange());
     } else{
         // Consume the THEN token.
-        then_expr = tokenstream_.next();
+        then_expr = token_stream_.next();
     }
 
     // THEN may be followed by zero or more operations.
-    while(next_token.type == NodeType::LPAREN){
-        attachChild(parseOperation(), then_expr);
-        next_token = tokenstream_.peek();
+    while(next_token->type == NodeType::LPAREN){
+        attachChild(parse_operation(), then_expr);
+        next_token = token_stream_.peek();
     }
 
     // THEN or its operation list may be followed by a goto.
-    if(next_token.type == NodeType::HOLLERITH_LITERAL){
-        attachChild(parseGoTo(tokenstream_.next()), then_expr);
+    if(next_token->type == NodeType::HOLLERITH_LITERAL){
+        attachChild(parse_goto(token_stream_.next()), then_expr);
     }
 
     // Record the end location of the statement.
-    then_expr->location_range->end = tokenstream_.here();
+    then_expr->location_range->end = token_stream_.here();
 
     // Check for an empty THEN, which is an error. The goto is mandatory if
     // there are no operations.
     if(then_expr->children.empty()){
-        error_handler_->emitError("A THEN statement cannot be empty.", then_expr->location_range);
+        error_handler_->emitError("A THEN statement cannot be empty.", then_expr->span);
     }
 
     return then_expr;
@@ -259,61 +264,64 @@ shared_ASTNode parser::parseThen(){
  *
  * @return A node representing the test.
  */
-shared_ASTNode parser::parseTest(){
+ASTNode_sp parser::parse_test(){
     const std::string *op_code;
     OperationData *op_info;
     // There are exactly three terms to every test.
-    shared_ASTNode arg1, op, arg2;
+    ASTNode_sp arg1;
+    ASTNode_sp op;
+    ASTNode_sp arg2;
     // Consume '(', which should be the next character.
     expect(NodeType::LPAREN);
 
-    arg1 = tokenstream_.next();
-    checkNodeType(*arg1, NodeType::HOLLERITH_LITERAL);
+    arg1 = token_stream_.next();
+    check_node_type(*arg1, NodeType::HOLLERITH_LITERAL);
     arg1->type = NodeType::CONTENTS_LITERAL;
 
     expect(NodeType::COMMA);
 
-    op = tokenstream_.next();
+    op = token_stream_.next();
     arg1 = attachChild(std::move(arg1), op);
-    checkNodeType(*op, NodeType::HOLLERITH_LITERAL);
-    op_info = lookup_op(*op->value_as_string(), tests);
+    check_node_type(*op, NodeType::HOLLERITH_LITERAL);
+    op_info = lookup_op(op->value_as_string(), tests);
     if(nullptr == op_info){
         // Oops, not a test operator.
         error_handler_->emitError(
             fmt::format("Only tests are allowed here, but {} is not a test.", op->value_as_string()),
-            op->location_range);
-        // ToDo(Robert): Return from the function in a sensible way.
+            op->span);
+        // ToDo(Robert): Return from the function in a sensible way, making sure the next use of
+        //  op_info is not on an uninitialized pointer.
     }
     op->type = op_info->type;
 
     expect(NodeType::COMMA);
 
-    arg2 = tokenstream_.next();
+    arg2 = token_stream_.next();
     arg2 = attachChild(std::move(arg2), op);
 
     // Parse the number literals.
     switch(op_info->arg_types[1]){
         case ArgType::D: //Decimal
-            checkNodeType(*arg2, NodeType::NUMBER_LITERAL);
-            arg2->value = std::stoul(*arg2->value_as_string());
+            check_node_type(*arg2, NodeType::NUMBER_LITERAL);
+            interpret_as_number(arg2);
             break;
         case ArgType::O:
-            checkNodeType(*arg2, NodeType::NUMBER_LITERAL);
-            arg2->value = std::stoul(*arg2->value_as_string(), nullptr, 8);
+            check_node_type(*arg2, NodeType::NUMBER_LITERAL);
+            interpret_as_number(arg2, 8);
             break;
         case ArgType::C:
             arg2->type = NodeType::CONTENTS_LITERAL;
             break;
         case ArgType::CD:
             if(NodeType::NUMBER_LITERAL == arg2->type){
-                arg2->value = std::stoul(*arg2->value_as_string());
+                interpret_as_number(arg2);
             } else{
                 arg2->type = NodeType::CONTENTS_LITERAL;
             }
             break;
         case ArgType::CO:
             if(NodeType::NUMBER_LITERAL == arg2->type){
-                arg2->value = std::stoul(*arg2->value_as_string(), nullptr, 8);
+                interpret_as_number(arg2, 8);
             } else{
                 arg2->type = NodeType::CONTENTS_LITERAL;
             }
@@ -322,7 +330,7 @@ shared_ASTNode parser::parseTest(){
             arg2->type = NodeType::NUMBER_LITERAL;
             error_handler_->emitError(
                 "Hollerith literals are not implemented here.",
-                op->location_range);
+                op->span);
             // ToDo(Robert): Write a conversion function from "Hollerith" literals to numbers.
             //  The character set needs to be selectable.
             break;
@@ -336,18 +344,18 @@ shared_ASTNode parser::parseTest(){
     return op;
 }
 
-shared_ASTNode parser::parseGoTo(shared_ASTNode label){
-    checkNodeType(*label, NodeType::HOLLERITH_LITERAL);
+ASTNode_sp parser::parse_goto(ASTNode_sp label){
+    check_node_type(*label, NodeType::HOLLERITH_LITERAL);
     label->type = NodeType::GOTO;
-    label_gotos.push_back(label);
+    label_gotos_.push_back(label);
 
-    std::string text {*label->value_as_string()};
+    std::string_view text {label->value_as_string()};
 
-    if(DUMP_TOKEN == text){
+    if("DUMP" == text){
         label->type = NodeType::DO_DUMP;
-    } else if(STATE_TOKEN == text){
+    } else if("STATE" == text){
         label->type = NodeType::DO_STATE;
-    } else if(ADVANCE_TOKEN == text){
+    } else if("ADVANC" == text){
         label->type = NodeType::DO_ADVANCE;
     }
     return label;
@@ -362,13 +370,13 @@ shared_ASTNode parser::parseGoTo(shared_ASTNode label){
  *
  * @return
  */
-shared_ASTNode parser::parseOperation(){
-    const std::string *op_code;
+ASTNode_sp parser::parse_operation(){
+    // const std::string_view op_code;
     // There can be up to 5 arguments.
-    std::array<shared_ASTNode, 5> args;
+    std::array<ASTNode_sp, 5> args;
     int argi = 0;
-    shared_ASTNode delimiter;
-    shared_ASTNode operation;
+    ASTNode_sp delimiter;
+    ASTNode_sp operation;
 
     // Consume '(', which should be the next character.
     expect(NodeType::LPAREN);
@@ -376,12 +384,12 @@ shared_ASTNode parser::parseOperation(){
     // We gather up all the tokens first, because the number of expressions in the operation
     // helps determine which operation it is.
     for(argi = 0; argi < 5; argi++){
-        args[argi] = tokenstream_.next();
-        delimiter = tokenstream_.next();
+        args[argi] = token_stream_.next();
+        delimiter = token_stream_.next();
         if(NodeType::RPAREN == delimiter->type){
             break;
         }
-        checkNodeType(*delimiter, NodeType::COMMA);
+        check_node_type(*delimiter, NodeType::COMMA);
     }
 
     // We create a bespoke decision tree, since there are only 5 cases.
@@ -393,127 +401,126 @@ shared_ASTNode parser::parseOperation(){
             error_handler_->emitError(
                 fmt::format("Operator cannot be empty: {}.",
                     delimiter->value_as_string()),
-                delimiter->location_range);
+                delimiter->span);
             break;
         case 1:
             // Two arguments.
             // DO
             if(args[0]->type == NodeType::HOLLERITH_LITERAL
-                && DO_TOKEN == *args[0]->value_as_string()){
-                return parseGoTo(args[1]);
+                && "DO" == args[0]->value_as_string()){
+                return parse_goto(args[1]);
             } else{
                 // There is only one other two-argument operator: the two argument form of (c, P, d).
                 // In this abbreviated form, the second argument is a decimal literal.
                 operation = std::make_shared<ASTNode>(
-                    NodeType::POINT_TO_SAME_AS, args[0]->location_range
+                    NodeType::POINT_TO_SAME_AS, args[0]->span
                 );
-                operation->location_range->end = tokenstream_.here();
+                operation->location_range->end = token_stream_.here();
                 args[0]->type = NodeType::CONTENTS_LITERAL;
-                // The second argument should have already been identified as a numnber literal.
-                checkNodeType(*args[1], NodeType::NUMBER_LITERAL);
-                // args[1]->type = NodeType::NUMBER_LITERAL;
-                args[1]->value = std::stoul(*args[1]->value_as_string());
+                // The second argument should have already been identified as a number literal.
+                check_node_type(*args[1], NodeType::NUMBER_LITERAL);
+                interpret_as_number(args[1]);
                 attachChild(std::move(args[0]), operation);
                 attachChild(std::move(args[1]), operation);
             }
             break;
-        case 2:
+        case 2:{ // Scope of op_code
             // Three arguments.
             // The most common case. We handled the handful of special cases first.
             operation = args[1];
-            op_code = operation->value_as_string();
-
-            if("FR" == *op_code){
+            
+            const std::string_view op_code(operation->value_as_string());
+        
+            if("FR" == op_code){
                 // Free block
                 args[0]->type = NodeType::CONTENTS_LITERAL;
                 operation->type = NodeType::FREE_BLOCK;
-                if(*args[2]->value_as_string() == "0"){
-                    args[2]->value = 0ul;
+                if("0" == args[2]->value_as_string()){
+                    args[2]->value = 0UL;
                     args[2]->type = NodeType::NUMBER_LITERAL;
                 } else{
                     args[2]->type = NodeType::CONTENTS_LITERAL;
                 }
                 attachChild(std::move(args[0]), operation);
                 attachChild(std::move(args[2]), operation);
-
-            } else if("FC" == *op_code){
+            
+            } else if("FC" == op_code){
                 // Save/Restore Field Contents
                 args[0]->type = NodeType::CONTENTS_LITERAL;
-                if(*args[0]->value_as_string() == "S"){
+                if(args[0]->value_as_string() == "S"){
                     operation->type = NodeType::SAVE_FIELD_CONTENTS;
-
-                } else if(*args[0]->value_as_string() == "R"){
+                
+                } else if(args[0]->value_as_string() == "R"){
                     operation->type = NodeType::RESTORE_FIELD_CONTENTS;
-                } else {
+                } else{
                     // Invalid option
                     error_handler_->emitError(
-                        fmt::format("FC can only have S (save) or R (restore) but was given '{}'.",
-                                    args[0]->value_as_string()),
-                        args[0]->location_range);
+                        fmt::format(
+                            "FC can only have S (save) or R (restore) but was given '{}'.",
+                            args[0]->value_as_string()), args[0]->span
+                    );
                 }
                 args[2]->type = NodeType::CONTENTS_LITERAL;
                 attachChild(std::move(args[2]), operation);
                 break;
-            } else if("FD" == *op_code){
+            } else if("FD" == op_code){
                 // Save/Restore Field Definition
                 args[0]->type = NodeType::CONTENTS_LITERAL;
-                if(*args[0]->value_as_string() == "S"){
+                if("S" == args[0]->value_as_string()){
                     operation->type = NodeType::SAVE_FIELD_DEFINITION;
-
-                } else if(*args[0]->value_as_string() == "R"){
+                
+                } else if(args[0]->value_as_string() == "R"){
                     operation->type = NodeType::RESTORE_FIELD_DEFINITION;
-                } else {
+                } else{
                     // Invalid option
                     error_handler_->emitError(
-                        fmt::format("FD can only have S (save) or R (restore) but was given '{}'.",
-                                    args[0]->value_as_string()),
-                        args[0]->location_range);
+                        fmt::format(
+                            "FD can only have S (save) or R (restore) but was given '{}'.",
+                            args[0]->value_as_string()), args[0]->span
+                    );
                 }
                 args[2]->type = NodeType::CONTENTS_LITERAL;
                 attachChild(std::move(args[2]), operation);
                 break;
             }
+        }
             // endregion: Special Cases
             // Let the generic case fall through
             [[fallthrough]];
-        default:
+        default:{  // Scope of op_code
             // Look for op in operators map.
-            auto op_info = lookup_op(*op_code, operators);
-            if(nullptr != op_info) {
+            const std::string_view op_code(operation->value_as_string());
+            auto op_info = lookup_op(op_code, operators);
+            if(nullptr != op_info){
                 operation = args[1];
-                // ToDo: Wherer I stopped.
-
-                // ToDo: Refactor everything using a number so that it goes through
-                //  `interpretAsNumber`.
-
-
+                // ToDo: (Where I stopped.) Parse arguments according to `op_info` spec.
+                
             } else{
                 // Not in operators map. Must be a special case.
             }
-
+        }
 
     }
 
-    operation->location_range->end = tokenstream_.here();
+    operation->location_range->end = token_stream_.here();
     return operation;
 }
 
-void parser::checkNodeType(const ASTNode &node, NodeType expected){
+void parser::check_node_type(const ASTNode &node, NodeType expected){
     if(node.type != expected){
         error_handler_->emitError(
             fmt::format( "Expected {}, but got {}.", "expected", "node.type"),
-            node.location_range
+            node.span
             );
     }
 }
 
 void parser::expect(NodeType expected){
-    checkNodeType(tokenstream_.peek(), expected);
-
+    check_node_type(*token_stream_.peek(), expected);
 }
 
 /**
- * @brief Safe converrsion of the value of the node from a pointer to a string representation of
+ * @brief Safe conversion of the value of the node from a pointer to a string representation of
  * a number in `base` to an unsigned long.
  *
  * All value manipulation should go through this function.
@@ -521,7 +528,7 @@ void parser::expect(NodeType expected){
  * @param node
  * @param type
  */
-void parser::interpretAsType(shared_ASTNode &node, ArgType type){
+void parser::interpret_as_type(ASTNode_sp &node, ArgType type){
     switch(type){
 
         case ArgType::_:
@@ -530,7 +537,7 @@ void parser::interpretAsType(shared_ASTNode &node, ArgType type){
 
         case ArgType::CD:
             if(NodeType::NUMBER_LITERAL == node->type){
-                interpretAsNumber(node);
+                interpret_as_number(node);
             } else {
                 node->type = NodeType::CONTENTS_LITERAL;
             }
@@ -540,12 +547,10 @@ void parser::interpretAsType(shared_ASTNode &node, ArgType type){
             node->type = NodeType::CONTENTS_LITERAL;
             break;
 
-        case ArgType::D:
-            interpretAsNumber(node);
+        case ArgType::D:interpret_as_number(node);
             break;
 
-        case ArgType::O:
-            interpretAsNumber(node, 8);
+        case ArgType::O:interpret_as_number(node, 8);
             break;
 
         case ArgType::H:
@@ -555,7 +560,7 @@ void parser::interpretAsType(shared_ASTNode &node, ArgType type){
 
         case ArgType::CO:
             if(NodeType::NUMBER_LITERAL == node->type){
-                interpretAsNumber(node, 8);
+                interpret_as_number(node, 8);
             } else {
                 node->type = NodeType::CONTENTS_LITERAL;
             }
@@ -571,33 +576,27 @@ void parser::interpretAsType(shared_ASTNode &node, ArgType type){
             node->type = NodeType::HOLLERITH_LITERAL;
             break;
 
-        case ArgType::ZERO_CONST:
-            interpretAsNumber(node);
+        case ArgType::ZERO_CONST:interpret_as_number(node);
             // ToDo: Should we emit an error if it's not zero?
             break;
 
         case ArgType::DUMP_CONST:
             // ToDo: Can we set the parent to DO_DUMP?
             node->type = NodeType::DO_DUMP;
-            delete node->value_as_string();
             break;
 
         case ArgType::ADVANC_CONST:
             node->type = NodeType::DO_ADVANCE;
-            delete node->value_as_string();
             break;
 
         case ArgType::STATE_CONST:
             node->type = NodeType::DO_DUMP;
-            delete node->value_as_string();
             break;
 
         case ArgType::R_CONST:
-            delete node->value_as_string();
             break;
 
         case ArgType::S_CONST:
-            delete node->value_as_string();
             break;
 
         default:
@@ -607,28 +606,27 @@ void parser::interpretAsType(shared_ASTNode &node, ArgType type){
 }
 
 /**
- * @brief Safe converrsion of the value of the node from a pointer to a string representation of
+ * @brief Safe conversion of the value of the node from a pointer to a string representation of
  * a decimal number to an unsigned long.
  *
  * @param node
  */
-void parser::interpretAsNumber(shared_ASTNode &node, int base){
-    const std::string *reclaim = node->value_as_string();
+void parser::interpret_as_number(ASTNode_sp &node, int base){
+    const std::string_view sv = node->value_as_string();
+    unsigned long long_value = 0UL;
 
     // Attempt to convert the number.
-    try {
-        node->value = std::stoul(*reclaim, nullptr, base);
-    }
-    catch (const std::invalid_argument& ia) {
+    auto result = std::from_chars(sv.data(), sv.data() + sv.size(), long_value);
+    
+    if (result.ec == std::errc::invalid_argument) {
         error_handler_->emitError(
-            fmt::forrmat("Invalid argument: '{}'. Expected a decimal =literral.", reclaim),
-            node->location_range);
-        // Does not free node->value string.
+            fmt::format("Invalid argument: '{}'. Expected a literal number.", sv),
+            node->span);
         node->type = NodeType::ERROR;
         return;
     }
-
-    delete reclaim;
+    
+    node->value = long_value;
     node->type = NodeType::NUMBER_LITERAL;
 }
 

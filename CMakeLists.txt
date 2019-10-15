@@ -9,8 +9,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 set(CMAKE_CXX_STANDARD 17)
 
 project(Elsix)
-set( PROJECT_DESCRIPTION "An implementation of the Bell Telephone Laboratories'
-                 Low-Level Linked List Language L6.")
+set(PROJECT_DESCRIPTION "An implementation of the Bell Telephone Laboratories' Low-Level Linked
+List Language L6.")
 
 # Detect of the compiler supports computed gotos. CURRENTLY UNUSED.
 #   clang++-5.0 or newer, GCC 6 or newer.
@@ -37,14 +37,24 @@ endif()
 
 set(ELSIX_SOURCES_HEADERS
         src/parser.hpp
-        src/ast.hpp
+        src/astnode.hpp
         src/visitor.hpp
-        src/error.hpp src/operators.hpp src/string_utilities.cpp src/string_utilities.hpp src/tokens.hpp src/tokenizer.hpp)
+        src/error.hpp
+        src/operators.hpp
+        src/stringutilities.hpp
+        src/reservedwords.hpp
+        src/tokenstream.hpp
+        src/sourcefile.hpp
+        src/location.hpp)
 set(ELSIX_SOURCES ${ELSIX_SOURCES_HEADERS}
         src/parser.cpp
-        src/ast.cpp
+        src/astnode.cpp
         src/visitor.cpp
-        src/error.cpp src/string_utilities.cpp src/string_utilities.hpp src/tokenizer.hpp src/tokenizer.cpp src/tokens.cpp)
+        src/error.cpp
+        src/stringutilities.cpp
+        src/reservedwords.cpp
+        src/tokenstream.cpp
+        src/sourcefile.cpp)
 
 add_executable(Elsix ${ELSIX_SOURCES})
 target_include_directories(Elsix PRIVATE src) # ${CONAN_INCLUDE_DIRS}
@@ -56,4 +66,4 @@ add_custom_target(docs ALL
         WORKING_DIRECTORY doc
         COMMAND make html
         VERBATIM
-        )
+    )

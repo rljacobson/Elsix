@@ -1,5 +1,5 @@
 /*
-    Created by Robert Jacobson on 04 April 2019.
+    Created by Robert Jacobson on 10 September 2019.
 
     Elsix
     Description: An implementation of the Bell Telephone Laboratories'
@@ -28,56 +28,56 @@
 
     */
 
+/**
+ * @brief An allocation-free lexer.
+ */
+
 #pragma once
 
-#include <iosfwd>
+#include <cstdint>
 #include <string>
 
-#include "tokens.hpp"
+#include "error.hpp"
+#include "sourcefile.hpp"
+#include "nodetypes.hpp"
+#include "astnode.hpp"
+#include "location.hpp"
 
-namespace elsix{
+// ASCII ETX ("End of Text") character:
+#define EOF_CHARACTER '\3'
+#define EOL_CHARACTER '\n'
 
-// Forward declarations.
-class ErrorHandler;
-struct Location;
-struct LocationRangeImpl;
-using LocationRange = std::shared_ptr<LocationRangeImpl>;
-class ASTNode;
-// A parent owns its children.
-using shared_ASTNode = std::shared_ptr<ASTNode>;
-// A child does not own its parent.
-using weak_ASTNode = std::weak_ptr<ASTNode>;
+namespace elsix {
 
-class Tokenizer {
+
+class TokenStream {
 public:
-    explicit Tokenizer(std::istream &in);
-    explicit Tokenizer(std::istream &in, ErrorHandler &&error_handler);
-    ~Tokenizer();
+    explicit TokenStream(const std::string &source_filename);
+    ~TokenStream() = default;
 
     // The tokenizer
-    [[nodiscard]] ASTNode &peek();
-    [[nodiscard]] const std::string *peekText() const noexcept;
-    shared_ASTNode next();
-    bool expect(char expected);
-    bool expect(const std::string &expected);
-    bool expect(NodeType expected);
+    [[nodiscard]] ASTNode *peek();
+    // [[nodiscard]] const std::string *peekText() const noexcept;
+    ASTNode_sp next();
 
     // The tokenizer tracks the location within the source file.
-    [[nodiscard]] Location here() const noexcept;
-    [[nodiscard]] LocationRange startRange() const;
-    [[nodiscard]] LocationRange endRange(Location start) const;
+    // [[nodiscard]] Location here() const noexcept;
+    // [[nodiscard]] Span startRange() const;
+    // [[nodiscard]] Span endRange(Location start) const;
+    
+    // Exposes `SourceFile.span_to_string()`.
+    [[nodiscard]] std::string_view span_to_string(Span span) const;
 
 private:
-    std::istream &in_;
-    int row_, column_, file_id_;
-    ASTNode *current_token_;
-    std::string current_line_;
-    ErrorHandler &error_handler_;
+    SourceFile source_file_;
+    ErrorHandler error_handler_;
+    Location cursor_;
+    ASTNode *staged_token_ = nullptr;
 
-    char nextNonBlank_();
-    char nextChar_();
-    void getPeekToken_();
-    [[nodiscard]] char peekChar_();
+    char next_nonblank_char_();
+    char next_char_();
+    char peek_char_();
+    void tokenize_next_();
 };
 
 }

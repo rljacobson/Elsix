@@ -32,11 +32,9 @@
 
 #include <iostream>
 #include <string>
-#include <utility>
-#include "fmt/format.h"
-#include "ast.hpp"
-#include "error.hpp"
 
+// #include "fmt/format.h"
+#include "error.hpp"
 
 namespace elsix{
 
@@ -48,23 +46,21 @@ ErrorHandler::ErrorHandler():
 }
 
 ErrorHandler::ErrorHandler(std::ostream &err, std::ostream &log):
-    err_stream_(&err), err_log_stream_(&log){
-    errors_ = std::vector< Error >();
+    errors_(std::vector< Error >()), err_stream_(&err), err_log_stream_(&log){
 }
 
 ErrorHandler::ErrorHandler(std::ostream &err):
-    err_stream_(&err), err_log_stream_(nullptr){
-    errors_ = std::vector< Error >();
+    errors_(std::vector< Error >()), err_stream_(&err), err_log_stream_(nullptr){
 }
 // endregion: ErrorHandler constructors
 
-void ErrorHandler::emitError(const std::string &&msg, LocationRange location_range){
-    errors_.emplace_back(std::forward<const std::string>(msg), std::move(location_range));
+void ErrorHandler::emitError(const std::string &&message, Span span){
+    errors_.emplace_back(std::forward<const std::string>(message), span);
     outputError(errors_.back());
 }
 
-void ErrorHandler::emitFatalError(const std::string &&msg, LocationRange location_range){
-    emitError(std::forward<const std::string>(msg), std::move(location_range));
+void ErrorHandler::emitFatalError(const std::string &&message, Span span){
+    emitError(std::forward<const std::string>(message), span);
     throw(FatalException(errors_.back()));
 }
 
@@ -74,10 +70,10 @@ const ErrorVector &ErrorHandler::getErrors() const noexcept{
 
 void ErrorHandler::outputError(const Error &error) const noexcept{
     if(err_log_stream_ != nullptr){
-        *err_log_stream_ << error.msg << std::endl;
+        *err_log_stream_ << error.message << std::endl;
     }
     if(err_stream_ != nullptr){
-        *err_stream_ << error.msg << std::endl;
+        *err_stream_ << error.message << std::endl;
     }
 }
 
@@ -92,8 +88,8 @@ const std::ostream &ErrorHandler::getLogStream() const noexcept{
 
 // region: Error Class Implementation
 
-Error::Error(const std::string &&msg, LocationRange location_range):
-    range(std::move(location_range)), msg(std::forward<const std::string>(msg)){
+Error::Error(const std::string &&msg, Span spn):
+    span(spn), message(std::forward<const std::string>(msg)){
 }
 
 // endregion: Error Class Implementation
@@ -101,7 +97,7 @@ Error::Error(const std::string &&msg, LocationRange location_range):
 // region: FatalException Class Implementation
 
 const char *FatalException::what() const noexcept {
-    return error.msg.c_str();
+    return error.message.c_str();
 }
 
 FatalException::FatalException(const Error &e) :

@@ -33,7 +33,7 @@
 #include <vector>
 #include <iterator>
 
-#include "string_utilities.hpp"
+#include "stringutilities.hpp"
 
 namespace elsix{
 

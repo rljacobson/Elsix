@@ -4,7 +4,7 @@
 ;        By R. J. W. Housden
 ;
 ; A complete list of tests and operations is given in Tables 1 and 2. Some of
-; these are illustrated by the following complete program which reads,  sorts into
+; these are illustrated by the following complete program which reads, sorts into
 ; ascending sequence and outputs numbers each terminated by a single space. The
 ; sequence of numbers is terminated by a double space. For simplicity the numbers
 ; are restricted to the range 0-9999.
@@ -27,8 +27,3 @@ BACK    IF      (XB, L, XDB) THEN (XB, IC, XDB) (X, D) BACK
 OUTPUT          (W, FR, WA) (S, FC, X)
 ANYMORE IF      (WA, E, 0) THEN (W, FR, 0) (R, FC, X) DONE
                 (X, BD, WB) (X, ZB, X) (6, PR, X) (W, FR, WA) ANYMORE
-
-
-
-
-

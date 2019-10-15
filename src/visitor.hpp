@@ -36,14 +36,14 @@ namespace elsix{
 // Forward declarations.
 class ASTNode;
 // A parent owns its children.
-using shared_ASTNode = std::shared_ptr<ASTNode>;
+using ASTNode_sp = std::shared_ptr<ASTNode>;
 
 class Visitor{
 public:
     Visitor() = default;
     ~Visitor() = default;
 
-    virtual void visit(shared_ASTNode node) = 0;
+    virtual void visit(ASTNode_sp node) = 0;
 };
 
 }

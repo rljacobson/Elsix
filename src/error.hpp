@@ -36,6 +36,9 @@
 #include <vector>
 #include <string>
 
+#include "location.hpp"
+
+// ToDo: Is this the right place for this define?
 #define UNREACHABLE     __builtin_unreachable();\
                         assert(false);
 
@@ -46,15 +49,10 @@ enum class ErrorType{
     UNEXPECTED_TOKEN
 };
 
-// Forward declarations.
-struct Location;
-struct LocationRangeImpl;
-using LocationRange = std::shared_ptr<LocationRangeImpl>;
-
 struct Error{
-    Error(const std::string &&message, LocationRange location_range);
-    const LocationRange range;
-    const std::string &msg;
+    Error(const std::string &&msg, Span spn);
+    const Span span;
+    const std::string &message;
 };
 
 using ErrorVector = std::vector< Error >;
@@ -65,8 +63,8 @@ public:
     explicit ErrorHandler(std::ostream &err);
     explicit ErrorHandler(std::ostream &err, std::ostream &log);
 
-    void emitError(const std::string &&msg, LocationRange location_range);
-    void emitFatalError(const std::string &&msg, LocationRange location_range);
+    void emitError(const std::string &&message, Span span);
+    void emitFatalError(const std::string &&message, Span span);
 
     [[nodiscard]] const ErrorVector &getErrors() const noexcept;
     void setLogStream(std::ostream &log) noexcept;

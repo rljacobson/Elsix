@@ -6,20 +6,20 @@
 
 This project implements the programming language L^6^, Bell Laboratories' Low-Level Linked List Language, designed and implemented by Kenneth C. Knowlton in 1965 for the IBM 7094 computer at Bell Labs. This language has fallen into obscurity and, to my knowledge, has no extant implementation.
 
-## Elsix (This Project)
 
-This project implements an L^6^ interpreter in modern C++17. It seems appropriate, however, to honor the memory of the computing pioneers in the construction of this software. I have chosen to do so by following the principles of handmade software as expressed in the [Handmade Manifesto](https://handmade.network/manifesto). 
+This project implements an L^6^ interpreter in modern C++17. It seems appropriate, however, to honor the memory of the computing pioneers in the construction of this software. I have chosen to do so by following the principles of _handmade software_ as expressed in the [Handmade Manifesto](https://handmade.network/manifesto).
 
 Information about how to build and install it will eventually be found in the file [doc/BUILDING.md](doc/BUILDING.md). Right now, however, the project is an incomplete work in progress.
 
 The rest of this README discusses the historical significance of L^6^ and its syntax and primary features.
 
+## History
 
 ### Original Implementations
 
 The original L^6^ implementation, "7094 L^6^," described in [@cite:Knowlton], was developed by Kenneth C. Knowlton for the IBM 7094 at Bell Labs in Fortan Assembly Programming. The 7094 had a 36-bit word size, 15-bit addressing, and 6-bit character encoding. It was capable of floating point operations, but L^6^ has no floating point literal type.
 
-In [@cite:Knowlton], Knowlton reports that "an extended version of \[L^6^] is being written for the GE-635 and GE-645." The GE systems were a logical choice: "\[A]s a result of the 36-bit needs, \[The GE-635] ended up acting a lot like the 7094. In fact GE offered a box to connect to the 635 called a 9SA that actually allowed the 635 to run 7094 programs."
+In [@cite:Knowlton], Knowlton reports that "an extended version of \[L^6^] is being written for the GE-635 and GE-645." The GE systems were a logical choice: "\[A]s a result of the 36-bit needs, \[The GE-635] ended up acting a lot like the 7094. In fact GE offered a box to connect to the 635 called a 9SA that actually allowed the 635 to run 7094 programs." [@cite:Wikipedia]
 
 Elsewhere in the paper, Knowlton references future versions of L^6^:
 > One restriction on fields for current 7094 L^6^ is that they may not include bits 0-2 or 18-20 of the 0th word. This restriction will be removed in subsequent versions and the examples in this paper do in fact violate it.
@@ -162,6 +162,8 @@ Possible optional language extensions:
 {#cite:Atlas} International Computers and Tabulators Unlimited, _I.C.T. ATLAS 1 Computer Programming Manual for ATLAS Basic Langauge (ABL)_, I.C.T. House, London, 1965. Original Online: http://www.chilton-computing.org.uk/acl/pdfs/cs348a.pdf. Transcription Online: http://www.chilton-computing.org.uk/acl/literature/manuals/atlas/p018.htm
 
 {#cite:CCH} "GE-635 System Manual," The Centre for Computing History, ref. i.d. CH15671. Online: http://www.computinghistory.org.uk/det/15671/GE-635-System-Manual/
+
+{#cite:Wikipedia} "GE-600 series", Wikipedia, Accessed September 4, 2019. Online: https://en.wikipedia.org/wiki/GE-600_series#History
 
 BibTex:
 ```tex

@@ -29,19 +29,24 @@
     */
 
 #include <unordered_map>
-#include "tokens.hpp"
+#include "reservedwords.hpp"
+#include "nodetypes.hpp"
 
 /**
- * @brief  Operations database.
+ * @brief  Operator database.
  */
 
 namespace elsix {
 
 
-inline OperationData* lookup_op(const std::string &key, OperatorMap &map){
-    char op_code_chars[4] = "\0\0\0";
+inline OperationData* lookup_op(const std::string_view key, OperatorMap &map){
+    char op_code_chars[4] = "\0\0\0"; // NOLINT(hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
-    strncpy(op_code_chars, key.c_str(), 3);
+    // ToDo: This is stupid. We need a `char[4]`, but we have a `std::string_view`. Fortunately
+    //  we don't need heep allocation.
+    for(int i = 0; i < key.size(); i++){
+        op_code_chars[i] = key[i];
+    }
     auto found = map.find(op_code_chars);
     if(map.end() == found){
         return nullptr;
@@ -49,7 +54,7 @@ inline OperationData* lookup_op(const std::string &key, OperatorMap &map){
     return &found->second;
 }
 
-inline NodeType lookup_keyword(const std::string &key){
+inline NodeType lookup_keyword(const std::string_view key){
     auto found = keywords.find(key);
     if(found == keywords.end()){
         return NodeType::EMPTY;
@@ -59,21 +64,35 @@ inline NodeType lookup_keyword(const std::string &key){
 
 // region: KeywordMap keywords
 
-KeywordMap keywords = {{"IFANY",  NodeType::IFANY},
-                         {"IF",     NodeType::IFANY},
-                         {"IFALL",  NodeType::IFALL},
-                         {"IFNALL", NodeType::IFNALL},
-                         {"IFNONE", NodeType::IFNONE},
-                         {"NOT",    NodeType::IFNONE},
-                         {"THEN",   NodeType::THEN},
-                         {"DONE",   NodeType::DONE},
-                         {"FAIL",   NodeType::FAIL}};
+/*
+ * We are making `std::string_view`s out of statically allocated data. This data exists for the
+ * life of the process, so this isn't exactly a memory leak, but neither is it particularly
+ * elegant. This wouldn't be necessary if the STL supported `std::string_view`. (However, see ISO
+ * C++ Proposal P1690R0 "Heterogeneous lookup for unordered containers,"
+ * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1690r0.html.)
+ *
+ */
+KeywordMap keywords{ // NOLINT(cert-err58-cpp)
+    {std::string_view("IFANY"), NodeType::IFANY}};
+    
+    /*
+    ,
+        {"IF",     NodeType::IFANY},
+        {"IFALL",  NodeType::IFALL},
+        {"IFNALL", NodeType::IFNALL},
+        {"IFNONE", NodeType::IFNONE},
+        {"NOT",    NodeType::IFNONE},
+        {"THEN",   NodeType::THEN},
+        {"DONE",   NodeType::DONE},
+        {"FAIL",   NodeType::FAIL}
+    }
+};*/
 
 // endregion: KeywordMap keywords
 
 // region: OperatorMap operators
 
-OperatorMap operators = {
+OperatorMap operators{{
     {   "SS\0",
         {   NodeType::SETUP_STORAGE,
             "SS\0",
@@ -383,12 +402,12 @@ OperatorMap operators = {
         {   NodeType::X_RANGE,
             "XR\0",
             {ArgType::CD, ArgType::CD, ArgType::_, ArgType::_},
-            "Set window x range for drawing"}},
+            "Set window x span for drawing"}},
     {   "YR\0",
         {   NodeType::Y_RANGE,
             "YR\0",
             {ArgType::CD, ArgType::CD, ArgType::_, ArgType::_},
-            "Set window y range for drawing"}},
+            "Set window y span for drawing"}},
     {   "TV\0",
         {   NodeType::TYPE_VERTICALLY,
             "TV\0",
@@ -414,13 +433,13 @@ OperatorMap operators = {
             "DO\0",
             {ArgType::S, ArgType::S, ArgType::_, ArgType::_},
             "Go to line or procedure, if returned fail, go to alternate"}}
-};
+}};
 
 // endregion: OperatorMap operators
 
 // region: OperationMap tests
 
-OperatorMap tests = {
+OperatorMap tests{{
     {   "E\0\0",
         {   NodeType::SET_EQUAL,
             "E\0\0",
@@ -516,40 +535,42 @@ OperatorMap tests = {
             "ZH\0",
             {ArgType::C, ArgType::H, ArgType::_, ArgType::_},
             "Test if zero bits of b agree with those of a, i.e. if (a & ~b) = 0"}}
-};
+}};
 // endregion: OperationMap tests
 
 // region: special_ops //Special cases.
 
-const std::array<OperationData, 7> special_ops = {
-    {   NodeType::POINT_TO_SAME_AS,
-        "P\0\0",
-        {ArgType::C, ArgType::D, ArgType::_, ArgType::_},
-        "Make b Point to same as a"},
-    {   NodeType::DRAW_POINT,
-        "DL\0",
-        {ArgType::CD, ArgType::CD, ArgType::_, ArgType::_},
-        "Draw a point (a degenerate line)"},
-    {   NodeType::DRAW_LINE,
-        "DL\0",
-        {ArgType::CD, ArgType::CD, ArgType::CD, ArgType::CD},
-        "Draw a line"},
-    {   NodeType::DO,
-        "DO\0",
-        {ArgType::S, ArgType::_, ArgType::_, ArgType::_},
-        "Go to line or procedure"},
-    {   NodeType::DO_STATE,
-        "DO\0",
-        {ArgType::STATE_CONST, ArgType::_, ArgType::_, ArgType::_},
-        "Go to print state procedure"},
-    {   NodeType::DO_DUMP,
-        "DO\0",
-        {ArgType::DUMP_CONST, ArgType::_, ArgType::_, ArgType::_},
-        "Go to print state and system dump procedure"},
-    {   NodeType::DO_ADVANCE,
-        "DO\0",
-        {ArgType::ADVANC_CONST, ArgType::_, ArgType::_, ArgType::_},
-        "Go to advance frame procedure"}
+const std::array<OperationData, 7> special_ops{  // NOLINT(cert-err58-cpp)
+    {
+        {   NodeType::POINT_TO_SAME_AS,
+            "P\0\0",
+            {ArgType::C, ArgType::D, ArgType::_, ArgType::_},
+            "Make b Point to same as a"},
+        {   NodeType::DRAW_POINT,
+            "DL\0",
+            {ArgType::CD, ArgType::CD, ArgType::_, ArgType::_},
+            "Draw a point (a degenerate line)"},
+        {   NodeType::DRAW_LINE,
+            "DL\0",
+            {ArgType::CD, ArgType::CD, ArgType::CD, ArgType::CD},
+            "Draw a line"},
+        {   NodeType::DO,
+            "DO\0",
+            {ArgType::S, ArgType::_, ArgType::_, ArgType::_},
+            "Go to line or procedure"},
+        {   NodeType::DO_STATE,
+            "DO\0",
+            {ArgType::STATE_CONST, ArgType::_, ArgType::_, ArgType::_},
+            "Go to print state procedure"},
+        {   NodeType::DO_DUMP,
+            "DO\0",
+            {ArgType::DUMP_CONST, ArgType::_, ArgType::_, ArgType::_},
+            "Go to print state and system dump procedure"},
+        {   NodeType::DO_ADVANCE,
+            "DO\0",
+            {ArgType::ADVANC_CONST, ArgType::_, ArgType::_, ArgType::_},
+            "Go to advance frame procedure"}
+    }
 };
 // endregion: special_ops //Special cases.
 
