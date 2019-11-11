@@ -71,7 +71,7 @@ using KeywordMap  = std::unordered_map<std::string_view, NodeType>;
  * other operators and reserved words that are not keywords.
  */
 extern KeywordMap keywords;
-NodeType lookup_keyword(const std::string_view key);
+NodeType lookup_keyword(std::string_view key);
 
 /**
  * @brief Database of operator information, where operator `name` is the lookup key.
@@ -86,9 +86,13 @@ NodeType lookup_keyword(const std::string_view key);
  * arguments they are given:
  *      FR, FC, FD, DL
  *
+ * The DEFINE FIELD operator, "Df" for f any field name, is only distinguished from other operators
+ * that start with the letter 'D' by the fact that it takes 3 arguments while the others only
+ * take two.
+ *
  */
 extern OperatorMap operators;
-OperationData *lookup_op(const std::string_view &key, OperatorMap &map);
+OperationData *lookup_op(std::string_view key, OperatorMap &map);
 
 /**
  * @brief Test operation tokens.

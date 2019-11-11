@@ -103,7 +103,7 @@ enum class NodeType: uint_fast8_t {
     // Literals
     NUMBER_LITERAL,
     HOLLERITH_LITERAL,
-    CONTENTS_LITERAL,
+    CONTENTS_LITERAL,  // Field name/bug/remote field.
 
     // Operations
     // Storage ops

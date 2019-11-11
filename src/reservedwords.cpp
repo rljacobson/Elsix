@@ -39,7 +39,7 @@
 namespace elsix {
 
 
-inline OperationData* lookup_op(const std::string_view key, OperatorMap &map){
+inline OperationData* lookup_op(std::string_view key, OperatorMap &map){
     char op_code_chars[4] = "\0\0\0"; // NOLINT(hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 
     // ToDo: This is stupid. We need a `char[4]`, but we have a `std::string_view`. Fortunately
@@ -54,7 +54,7 @@ inline OperationData* lookup_op(const std::string_view key, OperatorMap &map){
     return &found->second;
 }
 
-inline NodeType lookup_keyword(const std::string_view key){
+inline NodeType lookup_keyword(std::string_view key){
     auto found = keywords.find(key);
     if(found == keywords.end()){
         return NodeType::EMPTY;

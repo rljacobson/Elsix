@@ -56,15 +56,8 @@ ASTNode::ASTNode(NodeType t, Span s):
     value(0UL){
 }
 
-ASTNode::~ASTNode(){
-    // If we own a string on the heap, we need to delete it.
-    if(NodeType::HOLLERITH_LITERAL == type
-        && nullptr != std::get<const std::string_view>(value)){
-        delete std::get<const std::string_view>(value);
-    }
-}
 
-inline const std::string_view ASTNode::value_as_string(){
+inline std::string_view ASTNode::value_as_string(){
     return std::get<const std::string_view>(value);
 }
 inline unsigned long ASTNode::value_as_long() const noexcept{

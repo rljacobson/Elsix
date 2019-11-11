@@ -69,8 +69,8 @@ public:
      */
     explicit ASTNode(NodeType t, Location loc);
     explicit ASTNode(NodeType t, Span spn);
-    ~ASTNode();
-
+    ~ASTNode()= default;
+    
     /**
      * @brief The location in the source file.
      */
@@ -95,10 +95,10 @@ public:
      * @brief Holds a numeric value, a (pointer to) a string, or a pointer to a block.
      *
      */
-    using ValueType = std::variant<unsigned long, ASTNode_wp, const std::string_view>;
+    using ValueType = std::variant<unsigned long, ASTNode_wp, std::string_view>;
     ValueType value;
 
-    [[nodiscard]] const std::string_view value_as_string();
+    [[nodiscard]] std::string_view value_as_string();
     [[nodiscard]] unsigned long value_as_long() const noexcept;
     [[nodiscard]] ASTNode_wp value_as_node() const;
 

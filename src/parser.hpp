@@ -55,9 +55,9 @@ private:
     TokenStream &token_stream_;
     std::unique_ptr<ErrorHandler> error_handler_;
     // A map between labels and their lines.
-    std::unordered_map<const std::string *, ASTNode_sp> labels_;
+    std::unordered_map<std::string_view, ASTNode_sp> labels_;
     // GoTo statements that need to be back-patched.
-    std::vector<ASTNode_sp> label_gotos_;
+    std::vector<ASTNode_sp> back_patch_stack;
 
     // Parse functions.
     [[nodiscard]] ASTNode_sp parse_line();
@@ -65,6 +65,7 @@ private:
     [[nodiscard]] ASTNode_sp parse_if();
     [[nodiscard]] ASTNode_sp parse_test();
     [[nodiscard]] ASTNode_sp parse_then();
+    [[nodiscard]] ASTNode_sp parse_goto();
     [[nodiscard]] ASTNode_sp parse_goto(ASTNode_sp label);
     [[nodiscard]] ASTNode_sp parse_operation();
 

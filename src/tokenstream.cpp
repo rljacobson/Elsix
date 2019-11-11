@@ -122,14 +122,15 @@ void TokenStream::tokenize_next_(){
     // is not called unless `expect()` or `next()` is called first, clearing `staged_token_`.
     // Warning: Nothing enforces this contract but this assert!
     assert(nullptr == staged_token_);
+    
     staged_token_ = new ASTNode(NodeType::UNDEFINED, Span(cursor_));
     char c = next_nonblank_char_();
     
     // Since we are scanning the token anyway, we might as well estimate its type.
-    bool is_number = isDigit(c);
-    bool is_hollerith = isHollerith(c);
-    bool is_newline = (EOL_CHARACTER == c); // Newlines are normalized to EOL_CHARACTER by
-                                            // next_char_().
+    bool is_number = isDigit(c);             // Does not detect hex.
+    bool is_hollerith = isHollerith(c);      // Hollerith literals are alphanumeric or '.'.
+    bool is_newline = (EOL_CHARACTER == c);  // Newlines are normalized to EOL_CHARACTER by
+                                             // next_char_().
 
     // The first `c` character is special, because it is `nextNonBlank_`,
     // i.e. it does not have to be contiguous with the previously read character.
@@ -157,10 +158,12 @@ void TokenStream::tokenize_next_(){
     // example, `deadbeef` might be a hex number literal.
     if(is_number){
         staged_token_->type = NodeType::NUMBER_LITERAL;
+        staged_token_->value = span_to_string(staged_token_->span);
         // We do not know yet which base the number is in.
         return;
     } else if(is_hollerith){
         staged_token_->type = NodeType::HOLLERITH_LITERAL;
+        staged_token_->value = span_to_string(staged_token_->span);
         return;
     } else if(is_newline){
         staged_token_->type = NodeType::EOL;
