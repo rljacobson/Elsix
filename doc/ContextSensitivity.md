@@ -25,7 +25,7 @@ following:
 > first eight characters are significant...."
 
 We also find in Housden the example of the "setup storage" operation `(*20000000,ss,4,*20000400)`.
-Here we have a raw memory address given in decimal and dereferences with `*`.
+Here we have a raw memory address given in decimal and dereferenced with `*`.
 
 
 ## Terminology

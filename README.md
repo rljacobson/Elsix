@@ -14,9 +14,9 @@ to do so by following the principles of _handmade software_ as expressed in the
 
 1. Information about how to build and install it will eventually be found in the file [doc/BUILDING.md](doc/BUILDING.md). Right now, however, the project is an incomplete work in progress.
 2. A very brief overview of the L^6^ language is given in [doc/Basics.md](doc/Basics.md).
-3. A complete list of tests and operations is available in [docs/Operations.md](docs/Operations.md).
+3. A complete list of tests and operations is available in [docs/Operations.md](doc/Operations.md).
 3. L^6^ is context sensitive. Some notes documenting important context sensitivities are collected
-   in [docs/ContextSensitivity.md](docs/ContextSensitivity.md). This document is particularly
+   in [doc/ContextSensitivity.md](doc/ContextSensitivity.md). This document is particularly
    interesting to anyone wishing to implement L^6^ themselves.
 5. A couple of historic character sets likely to have been used by L^6^ are given in
    [doc/CharacterSets.md](doc/CharacterSets.md). The initial release will use ASCII, but a
