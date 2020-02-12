@@ -404,7 +404,8 @@ ASTNode_sp parser::parse_operation(){
     ASTNode_sp delimiter;
     ASTNode_sp operation;
     // Because we re-use the op code token node as the operation node, and because the op code token
-    // node is never the first token, we must record the start of the operation expression.
+    // node is never the first token (except for `DO`), we must record the start of the operation
+    // expression.
     Location start{token_stream_.peek()->span.start};
     Location end;
     
@@ -421,15 +422,22 @@ ASTNode_sp parser::parse_operation(){
             end = delimiter->span.end;
             break;
         }
+        if(NodeType::EOL == delimiter->type){
+            // Error, we reached the end of the line without reaching an `)`.
+            // Record the end of the operation, which is also the location of the error.
+            end = delimiter->span.end;
+            break;
+        }
         check_node_type(*delimiter, NodeType::COMMA);
     }
     
     // We create a bespoke decision tree since there are only 5 cases.
     switch(argi){
+        
         // region: Special Cases
         
         case 0:
-            // Empty or singleton operator.
+            // Empty or singleton operator. This is always an error.
             error_handler_->emitError(
                 fmt::format("Operator cannot be empty: {}.", delimiter->value_as_string()),
                 delimiter->span
@@ -437,7 +445,7 @@ ASTNode_sp parser::parse_operation(){
             // TODO: Set operation to error node.
             break;
         case 1:
-            // Two items.
+            // Two items: `(DO label)` and the two argument form of `(c, P, d)`.
             if(args[0]->type == NodeType::HOLLERITH_LITERAL && "DO" == args[0]->value_as_string()){
                 // DO
                 operation = std::make_shared<ASTNode>(NodeType::DO);
@@ -454,18 +462,18 @@ ASTNode_sp parser::parse_operation(){
                 attachChild(std::move(args[1]), operation);
             }
             break;
-        case 2:{ // Scope of op_code
-            // Three items.
-            // The most common case. We handle the handful of special cases first.
+        case 2:
+            { // Scope of `op_code` and `operation`.
+            // Three items. The most common case.
             operation = args[1];
-            
             std::string_view op_code(operation->value_as_string());
             
+            // We handle the handful of special cases first: `FR`, `FC`, and `FD` are overloaded.
             if("FR" == op_code){
                 // Free block
                 args[0]->type = NodeType::CONTENTS_LITERAL;
                 // TODO: Validate that args[0] really is NodeType::CONTENTS_LITERAL rather than,
-                //  say, NodeType::LPAREN or NodeType::EOL.
+                //  say, NodeType::LPAREN or NodeType::COMMA.
                 operation->type = NodeType::FREE_BLOCK;
                 if("0" == args[2]->value_as_string()){
                     // Zero is the only number literal possible.
@@ -479,57 +487,20 @@ ASTNode_sp parser::parse_operation(){
                 
             } else if("FC" == op_code){
                 // Save/Restore Field Contents
-                if("S" == args[0]->value_as_string()){
-                    // TODO: What if there is a bug named 'S'?
-                    operation->type = NodeType::SAVE_FIELD_CONTENTS;
-                    
-                } else if("R" == args[0]->value_as_string()){
-                    operation->type = NodeType::RESTORE_FIELD_CONTENTS;
-                } else{
-                    // Invalid option
-                    error_handler_->emitError(
-                        fmt::format(
-                            "FC can only have S (save) or R (restore) but was given '{}'.",
-                            args[0]->value_as_string()), args[0]->span
-                    );
-                }
-                args[2]->type = NodeType::CONTENTS_LITERAL;
-                attachChild(std::move(args[2]), operation);
+                //Nearly identical to `FD`, so we factor out code to method.
+                parse_save_restore(operation, args[0], args[2], NodeType::SAVE_FIELD_CONTENTS,
+                    NodeType::RESTORE_FIELD_CONTENTS);
                 break;
             } else if("FD" == op_code){
                 // Save/Restore Field Definition
-                args[0]->type = NodeType::CONTENTS_LITERAL;
-                if("S" == args[0]->value_as_string()){
-                    operation->type = NodeType::SAVE_FIELD_DEFINITION;
-                    
-                } else if(args[0]->value_as_string() == "R"){
-                    operation->type = NodeType::RESTORE_FIELD_DEFINITION;
-                } else{
-                    // Invalid option
-                    error_handler_->emitError(
-                        fmt::format(
-                            "FD can only have S (save) or R (restore) but was given '{}'.",
-                            args[0]->value_as_string()), args[0]->span
-                    );
-                }
-                args[2]->type = NodeType::CONTENTS_LITERAL;
-                attachChild(std::move(args[2]), operation);
+                parse_save_restore(operation, args[0], args[2], NodeType::SAVE_FIELD_DEFINITION,
+                                   NodeType::RESTORE_FIELD_DEFINITION);
                 break;
             }
-        }
-            // endregion: Special Cases
-            
-            // Let the generic case fall through
-            [[fallthrough]];
-        default:{  // Scope of op_code
-            // There are two places
-            
             
             // Look for op in operators map.
-            std::string_view op_code(operation->value_as_string());
             auto op_info = lookup_op(op_code, operators);
             if(nullptr != op_info){
-                operation = args[1];
                 operation->type = op_info->type;
                 // Parse arguments according to `op_info` spec.
                 for(int i = 0; i < 4; i++){
@@ -544,7 +515,9 @@ ASTNode_sp parser::parse_operation(){
                     fmt::format(
                         "Cannot interpret the operation '{}'. Check your spelling and make sure "
                         "you are supplying the right number of arguments.",
-                        token_stream_.span_to_string(error_span)), error_span
+                        token_stream_.span_to_string(error_span)
+                        ),
+                        error_span
                 );
                 // ToDo: Set operation to an error node.
             }
@@ -556,6 +529,29 @@ ASTNode_sp parser::parse_operation(){
     operation->span.start = start;
     operation->span.end = end;
     
+    return operation;
+}
+
+ASTNode_sp parser::parse_save_restore(ASTNode_sp operation, ASTNode_sp arg0, ASTNode_sp arg2,
+    NodeType save_node_type, NodeType restore_node_type)
+const{
+    // The first argument is either an `S` or an `R`.
+    if("S" == arg0->value_as_string()){
+        operation->type = save_node_type;
+    } else if("R" == arg0->value_as_string()){
+        operation->type = restore_node_type;
+    } else{
+        // Invalid option for `FC`/`FD`.
+        this->error_handler_->emitError(
+            fmt::format(
+                "{} can only take actions S (save) or R (restore) but was given '{}'.",
+                operation->value_as_string(),
+                arg0->value_as_string()),
+            arg0->span
+        );
+    }
+    arg2->type = NodeType::CONTENTS_LITERAL;
+    attachChild(std::move(arg2), operation);
     return operation;
 }
 

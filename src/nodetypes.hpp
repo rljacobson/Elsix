@@ -53,26 +53,26 @@ namespace elsix{
  * `isspace(c) && !isblank(c)`. End of line is signaled with `NodeType::EOL`, but not every
  * newline is a `NodeType::EOL`.
  */
-enum class NodeType: uint_fast8_t {
+enum class NodeType: uint_fast8_t{
     // Parser specific
-    EOL,        // End of line.
+        EOL,        // End of line.
     EOF_,        // End of file. (Needs `_` to avoid collision with EOF macro.)
     EMPTY,      // Token not found in a search.
     ERROR,      // Tokenization error.
     UNDEFINED,  // Token not yet determined.
     PROGRAM,
-
+    
     // Branching, which we include as keywords
-    IFANY,
+        IFANY,
     IF = IFANY,
     IFALL,
     IFNALL,
     IFNONE,
     NOT = IFNONE,
     THEN,
-
+    
     // DO
-    LINE,
+        LINE,
     GOTO,
     DO = GOTO,
     DO_OR_FAIL,
@@ -82,32 +82,32 @@ enum class NodeType: uint_fast8_t {
     DONE, // Keyword, return with success
     FAIL, // keyword, return with failure
     LABEL,
-
+    
     // Labels/symbols
-    ADVANC,
+        ADVANC,
     STATE,
     DUMP,
     T_DOT, // `T.` The time in milliseconds since the program began.
     N_DOT, // `n.` The (potential) number of blocks available from the allocator, where n ranges
-           // between 1 and 128.
+    // between 1 and 128.
     
     // Tests
-    EQUALITY_TEST,
+        EQUALITY_TEST,
     INEQUALITY_TEST,
     GREATER_TEST,
     LESS_TEST,
     POINTS_SAME_BLOCK_TEST,
     ONE_BITS_OF_TEST,
     ZERO_BITS_OF_TEST,
-
+    
     // Literals
-    NUMBER_LITERAL,
+        NUMBER_LITERAL,
     HOLLERITH_LITERAL,
     CONTENTS_LITERAL,  // Field name/bug/remote field.
-
+    
     // Operations
     // Storage ops
-    SETUP_STORAGE,
+        SETUP_STORAGE,
     DEFINE_FIELD,
     GET_BLOCK,
     FREE_BLOCK,
@@ -116,15 +116,15 @@ enum class NodeType: uint_fast8_t {
     DUPLICATE_BLOCK,
     INTERCHANGE_CONTENTS,
     POINT_TO_SAME_AS,
-
+    
     // Arithmetic
-    ADD,
+        ADD,
     SUBTRACT,
     MULTIPLY,
     DIVIDE,
-
+    
     // Logical ops
-    LOGICAL_OR,
+        LOGICAL_OR,
     LOGICAL_AND,
     EXCLUSIVE_OR,
     COMPLEMENT,
@@ -136,32 +136,31 @@ enum class NodeType: uint_fast8_t {
     LEFT_ZEROES,
     COUNT_ONES,
     COUNT_ZEROES,
-
+    
     // I/O
-    INPUT,
+        INPUT,
     PRINT,
     PRINT_LIST,
     PUNCH,
-
+    
     // Conversions - intended to facilitate I/O
-    BINARY_TO_DECIMAL,
+        BINARY_TO_DECIMAL,
     DECIMAL_TO_BINARY,
     BINARY_TO_OCTAL,
     OCTAL_TO_BINARY,
     BLANKS_TO_ZEROES,
     ZEROES_TO_BLANKS,
-
-
+    
     // Microfilm output
-    TYPE_VERTICALLY,
+        TYPE_VERTICALLY,
     TYPE_HORIZONTALLY,
     X_RANGE,
     Y_RANGE,
     DRAW_LINE,
     DRAW_POINT,
-
+    
     // Stack ops
-    SAVE_FIELD_DEFINITION,
+        SAVE_FIELD_DEFINITION,
     RESTORE_FIELD_DEFINITION,
     SAVE_FIELD_CONTENTS,
     RESTORE_FIELD_CONTENTS,
@@ -169,14 +168,14 @@ enum class NodeType: uint_fast8_t {
     FIELD_DEFINITION_STACK,
     SAVE_TO_STACK,
     RETRIEVE_FROM_STACK,
-
+    
     // Purely syntactic
-    COMMA,
+        COMMA,
     LPAREN,
     RPAREN
 };
 
-enum class ArgType: uint_fast8_t {
+enum class ArgType: uint_fast8_t{
     _,
     CD,
     C,

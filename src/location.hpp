@@ -41,18 +41,18 @@ namespace elsix{
  * @brief A `Location` is a human-readable (row, column) pair specifying a location in the source
  * file. Locations correspond 1-1 to buffer offsets.
  */
-struct Location {
+struct Location{
     Location() = default;
     explicit Location(int row, int column) : row(row), column(column){
     }
     Location(const Location &other) = default;
-
+    
     Location &operator=(const Location &rhs) = default;
-
+    
     bool operator==(const Location &rhs){
         return (row == rhs.row) && (column == rhs.column);
     };
-
+    
     // Row is an index into the `SourceFile.lines` `std::vector`.
     unsigned int row = 0;
     // Column is an index into the `SourceFile.lines[row]` `std::string_view`.
@@ -65,13 +65,13 @@ struct Location {
  * Spans are in 1-1 relationship with `std::string_view`s but are human readable. They can be
  * converted to `std::string_view`s with `SourceFile.get_text()`.
  */
-struct Span {
+struct Span{
     Span() = default;
     explicit Span(const Location &start, const Location &end) : start(start), end(end){
     }
     explicit Span(const Location &start) : start(start), end(Location()){
     }
-
+    
     Location start;
     Location end;
 };

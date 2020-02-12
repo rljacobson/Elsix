@@ -48,7 +48,7 @@ public:
     explicit parser(TokenStream &&token_stream);
     explicit parser(TokenStream &&token_stream, ErrorHandler &&error_handler);
     ~parser() = default;
-
+    
     ASTNode_sp parse();
 
 private:
@@ -58,7 +58,7 @@ private:
     std::unordered_map<std::string_view, ASTNode_sp> labels_;
     // GoTo statements that need to be back-patched.
     std::vector<ASTNode_sp> back_patch_stack;
-
+    
     // Parse functions.
     [[nodiscard]] ASTNode_sp parse_line();
     [[nodiscard]] ASTNode_sp parse_label_or_keyword();
@@ -68,13 +68,13 @@ private:
     [[nodiscard]] ASTNode_sp parse_goto();
     [[nodiscard]] ASTNode_sp parse_goto(ASTNode_sp label);
     [[nodiscard]] ASTNode_sp parse_operation();
-
+    
     // Utility functions.
     void check_node_type(const ASTNode &node, NodeType expected);
     void expect(NodeType expected);
     void interpret_as_type(ASTNode_sp &node, ArgType type);
     void interpret_as_number(ASTNode_sp &node, int base = 10);
-
+    
 };
 
 }

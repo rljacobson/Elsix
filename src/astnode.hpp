@@ -69,35 +69,35 @@ public:
      */
     explicit ASTNode(NodeType t, Location loc);
     explicit ASTNode(NodeType t, Span spn);
-    ~ASTNode()= default;
+    ~ASTNode() = default;
     
     /**
      * @brief The location in the source file.
      */
     Span span;
-
+    
     /**
      * @brief What the node represents.
      */
     NodeType type;
-
+    
     /**
      * @brief A parent owns its children.
      */
     std::vector<ASTNode_sp> children;
-
+    
     /**
      * @brief A child does not own its parent.
      */
     ASTNode_wp parent;
-
+    
     /**
      * @brief Holds a numeric value, a (pointer to) a string, or a pointer to a block.
      *
      */
     using ValueType = std::variant<unsigned long, ASTNode_wp, std::string_view>;
     ValueType value;
-
+    
     [[nodiscard]] std::string_view value_as_string();
     [[nodiscard]] unsigned long value_as_long() const noexcept;
     [[nodiscard]] ASTNode_wp value_as_node() const;
@@ -108,7 +108,7 @@ private:
     }
 }; // end class ASTNode
 
-ASTNode_sp & attachChild(ASTNode_sp &&child, ASTNode_sp &parent);
+ASTNode_sp &attachChild(ASTNode_sp &&child, ASTNode_sp &parent);
 
 } // end namespace elsix
 

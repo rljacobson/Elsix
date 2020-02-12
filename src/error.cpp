@@ -41,16 +41,18 @@ namespace elsix{
 // region: ErrorHandler Class Implementation
 // region: ErrorHandler constructors
 
-ErrorHandler::ErrorHandler():
-    errors_(ErrorVector()), err_stream_(&std::cerr), err_log_stream_(nullptr){
+ErrorHandler::ErrorHandler()
+    : errors_(ErrorVector()), err_stream_(&std::cerr), err_log_stream_(nullptr){
 }
 
-ErrorHandler::ErrorHandler(std::ostream &err, std::ostream &log):
-    errors_(std::vector< Error >()), err_stream_(&err), err_log_stream_(&log){
+ErrorHandler::ErrorHandler(std::ostream &err, std::ostream &log) : errors_(std::vector<Error>()),
+                                                                   err_stream_(&err),
+                                                                   err_log_stream_(&log){
 }
 
-ErrorHandler::ErrorHandler(std::ostream &err):
-    errors_(std::vector< Error >()), err_stream_(&err), err_log_stream_(nullptr){
+ErrorHandler::ErrorHandler(std::ostream &err) : errors_(std::vector<Error>()),
+                                                err_stream_(&err),
+                                                err_log_stream_(nullptr){
 }
 // endregion: ErrorHandler constructors
 
@@ -61,7 +63,7 @@ void ErrorHandler::emitError(const std::string &&message, Span span){
 
 void ErrorHandler::emitFatalError(const std::string &&message, Span span){
     emitError(std::forward<const std::string>(message), span);
-    throw(FatalException(errors_.back()));
+    throw (FatalException(errors_.back()));
 }
 
 const ErrorVector &ErrorHandler::getErrors() const noexcept{
@@ -88,20 +90,19 @@ const std::ostream &ErrorHandler::getLogStream() const noexcept{
 
 // region: Error Class Implementation
 
-Error::Error(const std::string &&msg, Span spn):
-    span(spn), message(std::forward<const std::string>(msg)){
+Error::Error(const std::string &&msg, Span spn)
+    : span(spn), message(std::forward<const std::string>(msg)){
 }
 
 // endregion: Error Class Implementation
 
 // region: FatalException Class Implementation
 
-const char *FatalException::what() const noexcept {
+const char *FatalException::what() const noexcept{
     return error.message.c_str();
 }
 
-FatalException::FatalException(const Error &e) :
-    error(e){
+FatalException::FatalException(const Error &e) : error(e){
 }
 // endregion: FatalException Class Implementation
 

@@ -18,9 +18,9 @@ RD      THEN    (X, IN, 6) (X, BZ, X)
 ; using a bug, say bug X, to scan the list,con]paring numbers in adjacent blocks:
 
 ORDER   THEN    (S, FC, X) (X, P, WA)
-ND      IF      (X_A, E, 0) THEN (R, FC, X) DONE
-BACK    IF      (XB, E, XDB) THEN (XDA, P, XA) (XAD, P, XD) (X, FR, XA) ND
-        IF      (XB, L, XDB) THEN (XB, IC, XDB) (X, D) BACK
+ND      IF      (X_A, E, 0)     THEN (R, FC, X) DONE
+BACK    IF      (XB, E, XDB)    THEN (XDA, P, XA) (XAD, P, XD) (X, FR, XA) ND
+        IF      (XB, L, XDB)    THEN (XB, IC, XDB) (X, D) BACK
         THEN    (X, A) ND
 
 ; 6.3 OUTPUTTING OFF RESULTS OF 6.2. The ordered list of numbers which results

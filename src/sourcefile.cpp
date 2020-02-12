@@ -50,9 +50,9 @@
 
 namespace elsix{
 
-SourceFile::SourceFile(const std::string &filename): filename_(filename){
+SourceFile::SourceFile(const std::string &filename) : filename_(filename){
     // ToDo: Integrate with error reporting system.
-
+    
     std::fstream in_stream(filename, std::ios::in | std::ios::binary);
     // Seek to the end to get the size of the file.
     in_stream.seekg(0, std::ios::end);
@@ -61,10 +61,12 @@ SourceFile::SourceFile(const std::string &filename): filename_(filename){
     // Return the input pointer to the beginning.
     in_stream.seekg(0, std::ios::beg);
     // Allocate enough memory for the file.
-    buffer = std::unique_ptr<char[]>(new char[file_length]); // NOLINT(hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+    buffer = std::unique_ptr<
+        char[]
+    >(new char[file_length]); // NOLINT(hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     // Read everything into memory `buffer`.
     in_stream.read(buffer.get(), file_length);
-
+    
     // Segment the contents of the file into lines separated by '\n'. We try to over-estimate the
     // number of lines in the source file by assuming an average line length of 40 characters.
     // It's a guess, but it seems to work well.
@@ -84,12 +86,14 @@ SourceFile::SourceFile(const std::string &filename): filename_(filename){
             lines.emplace_back(buffer.get() + start, i - start);
         }
     }
-
+    
     // Initialize `eof_` to one past the end of the last line.
     if(lines.empty()){
-        eof_ = Location(0,0);
-    } else {
-        eof_ = Location(lines.size() - 1, lines.back().length()); // NOLINT(bugprone-narrowing-conversions)
+        eof_ = Location(0, 0);
+    } else{
+        eof_ = Location(
+            lines.size() - 1,
+            lines.back().length()); // NOLINT(bugprone-narrowing-conversions)
     }
 }
 
@@ -99,8 +103,8 @@ SourceFile::SourceFile(const std::string &filename): filename_(filename){
  * @return: A `string_view` containing the text covered by the span.
  */
 inline std::string_view SourceFile::span_to_string(Span span) const noexcept{
-    const char * begin = lines[span.start.row].begin() + span.start.column;
-    const char * end = lines[span.end.row].begin() + span.end.column;
+    const char *begin = lines[span.start.row].begin() + span.start.column;
+    const char *end = lines[span.end.row].begin() + span.end.column;
     return std::string_view(begin, end - begin);
 }
 

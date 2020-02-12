@@ -47,19 +47,18 @@
 #define EOF_CHARACTER '\3'
 #define EOL_CHARACTER '\n'
 
-namespace elsix {
+namespace elsix{
 
-
-class TokenStream {
+class TokenStream{
 public:
     explicit TokenStream(const std::string &source_filename);
     ~TokenStream() = default;
-
+    
     // The tokenizer
     [[nodiscard]] ASTNode *peek();
     // [[nodiscard]] const std::string *peekText() const noexcept;
     ASTNode_sp next();
-
+    
     // The tokenizer tracks the location within the source file.
     // [[nodiscard]] Location here() const noexcept;
     // [[nodiscard]] Span startRange() const;
@@ -73,7 +72,7 @@ private:
     ErrorHandler error_handler_;
     Location cursor_;
     ASTNode *staged_token_ = nullptr;
-
+    
     char next_nonblank_char_();
     char next_char_();
     char peek_char_();

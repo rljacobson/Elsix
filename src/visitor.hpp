@@ -42,7 +42,7 @@ class Visitor{
 public:
     Visitor() = default;
     ~Visitor() = default;
-
+    
     virtual void visit(ASTNode_sp node) = 0;
 };
 

@@ -130,29 +130,44 @@
  * within an IF or THEN statement determines the meaning.
  * 
  */
-TEST_OPERATOR(E, D, O, H)
-TEST_OPERATOR(N, D, O, H)
-TEST_OPERATOR(G, D, O, H)
-TEST_OPERATOR(L, D, O, H)
-TEST_OPERATOR(O, O, D, H)
-TEST_OPERATOR(Z, O, D, H)
+TEST_OPERATOR(E, D, O, H
+)
+TEST_OPERATOR(N, D, O, H
+)
+TEST_OPERATOR(G, D, O, H
+)
+TEST_OPERATOR(L, D, O, H
+)
+TEST_OPERATOR(O, O, D, H
+)
+TEST_OPERATOR(Z, O, D, H
+)
 
 /**
  * @brief Arithmetic operators: Equal (Assignment), add, subtract, multiply, divide
  */
-OPERATOR(E, D, O, H)
-OPERATOR(A, D, O, H)
-OPERATOR(S, D, O, H)
-OPERATOR(M, D, O, H)
-OPERATOR(V, D, O, H)
+OPERATOR(E, D, O, H
+)
+OPERATOR(A, D, O, H
+)
+OPERATOR(S, D, O, H
+)
+OPERATOR(M, D, O, H
+)
+OPERATOR(V, D, O, H
+)
 
 /**
  * @brief Logical operators: or, and, xor, complement
  */
-OPERATOR(O, O, D, H)
-OPERATOR(N, O, D, H)
-OPERATOR(X, O, D, H)
-OPERATOR(C, O, D, H)
+OPERATOR(O, O, D, H
+)
+OPERATOR(N, O, D, H
+)
+OPERATOR(X, O, D, H
+)
+OPERATOR(C, O, D, H
+)
 
 /**
  * @brief Left and right shift, but these are ternary.

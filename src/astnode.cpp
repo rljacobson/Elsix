@@ -32,30 +32,17 @@
 
 namespace elsix{
 
-ASTNode::ASTNode():
-    span(Span()),
-    type(NodeType::UNDEFINED),
-    value(0UL){
+ASTNode::ASTNode() : span(Span()), type(NodeType::UNDEFINED), value(0UL){
 }
 
-ASTNode::ASTNode(NodeType t):
-    span(Span()),
-    type(t),
-    value(0UL){
+ASTNode::ASTNode(NodeType t) : span(Span()), type(t), value(0UL){
 }
 
-ASTNode::ASTNode(NodeType t, Location loc):
-    span(Span(loc, loc)),
-    type(t),
-    value(0UL){
+ASTNode::ASTNode(NodeType t, Location loc) : span(Span(loc, loc)), type(t), value(0UL){
 }
 
-ASTNode::ASTNode(NodeType t, Span s):
-    span(s),
-    type(t),
-    value(0UL){
+ASTNode::ASTNode(NodeType t, Span s) : span(s), type(t), value(0UL){
 }
-
 
 inline std::string_view ASTNode::value_as_string(){
     return std::get<const std::string_view>(value);
@@ -67,7 +54,7 @@ ASTNode_wp ASTNode::value_as_node() const{
     return std::get<ASTNode_wp>(value);
 }
 
-ASTNode_sp & attachChild(ASTNode_sp &&child, ASTNode_sp &parent){
+ASTNode_sp &attachChild(ASTNode_sp &&child, ASTNode_sp &parent){
     child->parent = std::weak_ptr<ASTNode>{parent};
     parent->children.push_back(std::move(child));
     return parent->children.back();

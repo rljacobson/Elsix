@@ -52,25 +52,25 @@
 
 #include "location.hpp"
 
-namespace elsix {
-class SourceFile {
+namespace elsix{
+class SourceFile{
 
 public:
     /// A SourceFile requires a path to a file.
     explicit SourceFile(const std::string &filename);
-
+    
     Location eof(){
         return eof_;
     }
-
+    
     /// References to lines (rows) within the source file. A more efficient method of storage
     /// would be to store only the end of each line, but the added code complexity is not worth it.
     /// Note that empty lines are still lines.
     std::vector<std::string_view> lines;
-
+    
     /// Get a `string_view` from its span.
     [[nodiscard]] std::string_view span_to_string(Span span) const noexcept;
-
+    
     const char *loc_to_ptr(Location loc){
         return lines[loc.row].begin() + loc.column;
     }

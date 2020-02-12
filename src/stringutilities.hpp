@@ -86,7 +86,6 @@ inline void trim(std::string &s) noexcept;
 [[nodiscard]] bool isAlpha(char c) noexcept;
 [[nodiscard]] bool isAlphanumeric(char c) noexcept;
 
-
 /**
  * @brief Detects if the given character is an allowable Hollerith literal.
  *
@@ -96,7 +95,6 @@ inline void trim(std::string &s) noexcept;
  * @return
  */
 [[nodiscard]] bool isHollerith(char c) noexcept;
-
 
 [[nodiscard]] bool isDigit(char c) noexcept;
 [[nodiscard]] bool isOctal(char c) noexcept;

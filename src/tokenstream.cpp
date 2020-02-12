@@ -38,15 +38,16 @@
 
 namespace elsix{
 
-TokenStream::TokenStream(const std::string &source_filename):
-    source_file_(SourceFile(source_filename)),
-    error_handler_(ErrorHandler()){
+TokenStream::TokenStream(const std::string &source_filename) : source_file_(
+    SourceFile(
+        source_filename
+    )), error_handler_(ErrorHandler()){
     cursor_ = Location(0, -1);
 }
 
 ASTNode_sp TokenStream::next(){
     // If a token has not been staged, stage it.
-    if(nullptr==staged_token_){
+    if(nullptr == staged_token_){
         tokenize_next_();
     }
     ASTNode_sp token = std::make_shared<ASTNode>(std::move(*staged_token_));
@@ -66,7 +67,7 @@ char TokenStream::next_char_(){
     }
     
     // Otherwise, move cursor_ to the next position.
-    if(cursor_.column == static_cast<int>(source_file_.lines[cursor_.row].length() -1)){
+    if(cursor_.column == static_cast<int>(source_file_.lines[cursor_.row].length() - 1)){
         // We're at EOL. The next position is on the next line.
         cursor_.row++;
         cursor_.column = 0;
@@ -99,7 +100,7 @@ char TokenStream::peek_char_(){
     Location next_location = cursor_;
     
     // Otherwise, move cursor_ to the next position.
-    if(next_location.column == static_cast<int>(source_file_.lines[cursor_.row].length() -1)){
+    if(next_location.column == static_cast<int>(source_file_.lines[cursor_.row].length() - 1)){
         // We're at EOL. The next position is on the next line.
         next_location.row++;
         next_location.column = 0;
@@ -130,8 +131,8 @@ void TokenStream::tokenize_next_(){
     bool is_number = isDigit(c);             // Does not detect hex.
     bool is_hollerith = isHollerith(c);      // Hollerith literals are alphanumeric or '.'.
     bool is_newline = (EOL_CHARACTER == c);  // Newlines are normalized to EOL_CHARACTER by
-                                             // next_char_().
-
+    // next_char_().
+    
     // The first `c` character is special, because it is `nextNonBlank_`,
     // i.e. it does not have to be contiguous with the previously read character.
     if(is_number || is_hollerith){
@@ -148,11 +149,11 @@ void TokenStream::tokenize_next_(){
             next_char_();
         }
     }
-
+    
     // Adjust `end` to be one past the last char.
     staged_token_->span.end = cursor_;
     staged_token_->span.end.column++;
-
+    
     // We do some initial rudimentary NodeType guessing. The parser knows more about how to
     // determine NodeType, because it has more context, so this is just a hint to the parser. For
     // example, `deadbeef` might be a hex number literal.
@@ -173,19 +174,15 @@ void TokenStream::tokenize_next_(){
     if(source_file_.span_length(staged_token_->span) != 1){
         return;
     }
-    switch( *source_file_.loc_to_ptr(staged_token_->span.start)){
+    switch(*source_file_.loc_to_ptr(staged_token_->span.start)){
         // ToDo: Figure out how `T.` and `n.` were intended to work, and implement them here.
-        case EOF_CHARACTER:
-            staged_token_->type = NodeType::EOF_;
+        case EOF_CHARACTER:staged_token_->type = NodeType::EOF_;
             break;
-        case COMMA_TOKEN:
-            staged_token_->type = NodeType::COMMA;
+        case COMMA_TOKEN:staged_token_->type = NodeType::COMMA;
             break;
-        case LPAREN_TOKEN:
-            staged_token_->type = NodeType::LPAREN;
+        case LPAREN_TOKEN:staged_token_->type = NodeType::LPAREN;
             break;
-        case RPAREN_TOKEN:
-            staged_token_->type = NodeType::RPAREN;
+        case RPAREN_TOKEN:staged_token_->type = NodeType::RPAREN;
             break;
     } // End switch on single character
     

@@ -237,7 +237,7 @@ Microfilm
 (cdxmin, XR, cdxmax)
 (cdymin, YR, cdymax
 (cdx0, DL, cdy0, cdx1, cdy1)
-(cdx0, DL, cdy0)
+(cdx0, DL, cdy0)                ; Draw a point. 
 (cdx0, TV, cdy0, co, cd)
 (cdx0, TVH, cdy0, h, cd)
 (cdx0, TH, cdy0, co, cd)

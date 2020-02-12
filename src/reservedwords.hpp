@@ -61,7 +61,9 @@ struct OperationData{
 //     {ArgType::_, ArgType::_, ArgType::_, ArgType::_},
 //     "A thing to test the stuff"
 // };
-using OperatorMap  = std::unordered_map<char[4], OperationData>; // NOLINT(hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+using OperatorMap  = std::unordered_map<
+    char[4], OperationData
+>; // NOLINT(hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 using KeywordMap  = std::unordered_map<std::string_view, NodeType>;
 
 /**
@@ -76,19 +78,7 @@ NodeType lookup_keyword(std::string_view key);
 /**
  * @brief Database of operator information, where operator `name` is the lookup key.
  *
- * There are a handful of special cases. The operators of arity 2 are all special cases:
- *      (DO, s)
- *      (DO, STATE)
- *      (DO, DUMP)
- *      (DO, ADVANC)
- *      (c, d) ; A shortcut for (c, P, d)
- * The following operators are special cases because they are overloaded, distinguished only by the
- * arguments they are given:
- *      FR, FC, FD, DL
  *
- * The DEFINE FIELD operator, "Df" for f any field name, is only distinguished from other operators
- * that start with the letter 'D' by the fact that it takes 3 arguments while the others only
- * take two.
  *
  */
 extern OperatorMap operators;

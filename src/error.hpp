@@ -45,8 +45,7 @@
 namespace elsix{
 
 enum class ErrorType{
-    TYPE_MISMATCH,
-    UNEXPECTED_TOKEN
+    TYPE_MISMATCH, UNEXPECTED_TOKEN
 };
 
 struct Error{
@@ -55,17 +54,17 @@ struct Error{
     const std::string &message;
 };
 
-using ErrorVector = std::vector< Error >;
+using ErrorVector = std::vector<Error>;
 
 class ErrorHandler{
 public:
     ErrorHandler();
     explicit ErrorHandler(std::ostream &err);
     explicit ErrorHandler(std::ostream &err, std::ostream &log);
-
+    
     void emitError(const std::string &&message, Span span);
     void emitFatalError(const std::string &&message, Span span);
-
+    
     [[nodiscard]] const ErrorVector &getErrors() const noexcept;
     void setLogStream(std::ostream &log) noexcept;
     [[nodiscard]] const std::ostream &getLogStream() const noexcept;
@@ -74,7 +73,7 @@ private:
     ErrorVector errors_;
     std::ostream *err_stream_;
     std::ostream *err_log_stream_;
-
+    
     void outputError(const Error &error) const noexcept;
 };
 
